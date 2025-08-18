@@ -2,8 +2,6 @@
 spring:
   application:
     name: hellojava06
-  profiles:
-    active: localstack
   
   # Database Configuration (same as main)
   datasource:

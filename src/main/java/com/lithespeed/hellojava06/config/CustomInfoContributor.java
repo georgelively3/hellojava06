@@ -28,13 +28,13 @@ public class CustomInfoContributor implements InfoContributor {
         Map<String, Object> appInfo = new HashMap<>();
         appInfo.put("environment", environment);
         appInfo.put("version", version);
-        
+
         Map<String, Object> s3Info = new HashMap<>();
         s3Info.put("bucket", s3Bucket);
         s3Info.put("region", s3Region);
-        
+
         builder.withDetail("application", appInfo);
         builder.withDetail("s3", s3Info);
-        builder.withDetail("features", new String[]{"user-management", "s3-integration"});
+        builder.withDetail("features", new String[] { "user-management", "s3-integration" });
     }
 }

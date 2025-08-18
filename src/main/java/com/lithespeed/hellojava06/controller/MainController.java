@@ -1,7 +1,6 @@
 package com.lithespeed.hellojava06.controller;
 
 import com.lithespeed.hellojava06.entity.User;
-import com.lithespeed.hellojava06.service.S3Service;
 import com.lithespeed.hellojava06.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,9 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +20,10 @@ import java.util.Map;
 public class MainController {
 
     private final UserService userService;
-    private final S3Service s3Service;
 
     @Autowired
-    public MainController(UserService userService, S3Service s3Service) {
+    public MainController(UserService userService) {
         this.userService = userService;
-        this.s3Service = s3Service;
     }
 
     // ========== USER CRUD OPERATIONS ==========
@@ -95,53 +90,6 @@ public class MainController {
         Map<String, Long> response = new HashMap<>();
         response.put("count", count);
         return ResponseEntity.ok(response);
-    }
-
-    // ========== S3 OPERATIONS ==========
-
-    @PostMapping("/s3/upload")
-    public ResponseEntity<Map<String, String>> uploadFile(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "key", required = false) String key) {
-
-        try {
-            if (key == null || key.isEmpty()) {
-                key = "uploads/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            }
-
-            String fileUrl = s3Service.uploadFile(key, file);
-
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "File uploaded successfully");
-            response.put("key", key);
-            response.put("url", fileUrl);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IOException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", "Failed to upload file: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
-
-    @GetMapping("/s3/list")
-    public ResponseEntity<Map<String, Object>> listFiles(
-            @RequestParam(value = "prefix", required = false, defaultValue = "") String prefix) {
-
-        try {
-            List<String> files = s3Service.listFiles(prefix);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("files", files);
-            response.put("count", files.size());
-            response.put("prefix", prefix);
-
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("error", "Failed to list files: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
     }
 
     // ========== HEALTH CHECK ==========

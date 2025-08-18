@@ -3,6 +3,7 @@ package com.lithespeed.hellojava06.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -51,7 +52,7 @@ public class S3Config {
      * Configured for enterprise workloads with proper timeouts and retry policies
      */
     @Bean
-    @Profile({"prod", "uat", "preprod", "!localstack"})
+    @Profile({ "prod", "uat", "preprod", "!localstack", "!test" })
     public S3Client enterpriseS3Client() {
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region))
@@ -87,11 +88,12 @@ public class S3Config {
      * LocalStack S3 Client for development and testing
      */
     @Bean
-    @Profile("localstack")
+    @Primary
+    @Profile({ "localstack", "!test" })
     public S3Client localStackS3Client() {
         // LocalStack credentials (these are dummy values for LocalStack)
         AwsBasicCredentials credentials = AwsBasicCredentials.create("test", "test");
-        
+
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(credentials))
@@ -127,7 +129,7 @@ public class S3Config {
     }
 
     private boolean hasExplicitCredentials() {
-        return accessKey != null && !accessKey.isEmpty() && 
-               secretKey != null && !secretKey.isEmpty();
+        return accessKey != null && !accessKey.isEmpty() &&
+                secretKey != null && !secretKey.isEmpty();
     }
 }

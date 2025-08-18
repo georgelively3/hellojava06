@@ -40,7 +40,7 @@ class S3ServiceTest {
     @BeforeEach
     void setUp() {
         s3Service = new S3Service(s3Client);
-        
+
         // Use reflection to set the private fields
         setPrivateField(s3Service, "bucketName", bucketName);
         setPrivateField(s3Service, "region", region);

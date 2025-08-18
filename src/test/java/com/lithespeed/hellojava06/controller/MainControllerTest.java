@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -29,7 +30,12 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(MainController.class)
+@WebMvcTest(controllers = MainController.class, excludeAutoConfiguration = {
+        org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class
+})
+@ActiveProfiles("test")
 class MainControllerTest {
 
     @Autowired
@@ -40,6 +46,10 @@ class MainControllerTest {
 
     @MockBean
     private S3Service s3Service;
+
+    // Mock the S3Client bean to prevent dependency injection issues
+    @MockBean
+    private software.amazon.awssdk.services.s3.S3Client s3Client;
 
     @Autowired
     private ObjectMapper objectMapper;

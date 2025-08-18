@@ -1,0 +1,38 @@
+# Test-specific configuration to prevent S3Config from interfering with unit tests
+spring:
+  # H2 in-memory database for tests
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+
+  # Disable S3 health indicator in tests
+  health:
+    s3:
+      enabled: false
+
+# AWS S3 configuration for tests (prevents property binding errors)
+aws:
+  s3:
+    bucket-name: test-bucket
+    region: us-east-1
+    access-key: test
+    secret-key: test
+    endpoint-url: http://localhost:4566
+    connection-timeout: 10000
+    socket-timeout: 50000
+    max-connections: 50
+    max-error-retry: 3
+
+# Logging
+logging:
+  level:
+    com.lithespeed.hellojava06: DEBUG
+    org.springframework.web: DEBUG
