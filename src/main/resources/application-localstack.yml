@@ -1,0 +1,63 @@
+# LocalStack Configuration for Development
+spring:
+  application:
+    name: hellojava06
+  profiles:
+    active: localstack
+  
+  # Database Configuration (same as main)
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+    
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        
+  flyway:
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+# AWS S3 Configuration for LocalStack
+aws:
+  s3:
+    bucket-name: ${S3_BUCKET_NAME:test-bucket}
+    region: ${AWS_REGION:us-east-1}
+    endpoint-url: ${LOCALSTACK_ENDPOINT:http://localhost:4566}
+    # LocalStack uses dummy credentials
+    access-key: test
+    secret-key: test
+
+# LocalStack specific settings
+localstack:
+  enabled: true
+  services: s3
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Logging
+logging:
+  level:
+    com.lithespeed: DEBUG
+    software.amazon.awssdk: DEBUG
+    org.springframework.web: INFO

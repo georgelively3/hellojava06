@@ -3,10 +3,8 @@ package com.lithespeed.hellojava06.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -32,7 +30,6 @@ class S3ServiceTest {
     @Mock
     private MultipartFile multipartFile;
 
-    @InjectMocks
     private S3Service s3Service;
 
     private final String bucketName = "test-bucket";
@@ -42,11 +39,21 @@ class S3ServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(s3Service, "bucketName", bucketName);
-        ReflectionTestUtils.setField(s3Service, "region", region);
-        ReflectionTestUtils.setField(s3Service, "accessKey", "test-access-key");
-        ReflectionTestUtils.setField(s3Service, "secretKey", "test-secret-key");
-        ReflectionTestUtils.setField(s3Service, "s3Client", s3Client);
+        s3Service = new S3Service(s3Client);
+        
+        // Use reflection to set the private fields
+        setPrivateField(s3Service, "bucketName", bucketName);
+        setPrivateField(s3Service, "region", region);
+    }
+
+    private void setPrivateField(Object target, String fieldName, Object value) {
+        try {
+            var field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set field: " + fieldName, e);
+        }
     }
 
     @Test

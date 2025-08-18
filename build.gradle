@@ -40,6 +40,10 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.21.29')
     implementation 'software.amazon.awssdk:s3'
     
+    // LocalStack for S3 service virtualization
+    testImplementation 'org.testcontainers:localstack:1.19.1'
+    testImplementation 'com.amazonaws:aws-java-sdk-s3:1.12.565' // For LocalStack compatibility
+    
     // Development tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
@@ -108,9 +112,43 @@ task integrationTest(type: Test) {
     jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
     jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
     systemProperty 'file.encoding', 'UTF-8'
+    systemProperty 'spring.profiles.active', 'localstack'
     
     shouldRunAfter test
     finalizedBy jacocoTestReport
+}
+
+// Unit tests only (no Docker required)
+task unitTest(type: Test) {
+    description = 'Run unit tests only (no Docker required)'
+    group = 'verification'
+    useJUnitPlatform()
+    
+    include '**/*Test.class'
+    exclude '**/integration/**'
+    exclude '**/cucumber/**'
+    
+    systemProperty 'spring.profiles.active', 'test'
+    
+    jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+    jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
+// S3-specific tests with LocalStack
+task s3Test(type: Test) {
+    description = 'Run S3-specific tests with LocalStack'
+    group = 'verification'
+    useJUnitPlatform()
+    
+    include '**/S3*Test.class'
+    include '**/integration/S3*Test.class'
+    
+    systemProperty 'spring.profiles.active', 'localstack'
+    
+    jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+    jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+    systemProperty 'file.encoding', 'UTF-8'
 }
 
 wrapper {

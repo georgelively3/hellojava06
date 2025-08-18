@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # LocalStack for S3 service virtualization
+  localstack:
+    image: localstack/localstack:3.0
+    container_name: hellojava06-localstack
+    ports:
+      - "4566:4566"            # LocalStack Gateway
+      - "4510-4559:4510-4559"  # External services port range
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - PERSISTENCE=1
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "./tmp/localstack:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - hellojava06-network
+
+  # PostgreSQL for production-like testing (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: hellojava06-postgres
+    environment:
+      POSTGRES_DB: hellojava06
+      POSTGRES_USER: hellojava06
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hellojava06-network
+
+  # Application (optional - for full stack testing)
+  app:
+    build: .
+    container_name: hellojava06-app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=localstack
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/hellojava06
+      - SPRING_DATASOURCE_USERNAME=hellojava06
+      - SPRING_DATASOURCE_PASSWORD=password123
+      - LOCALSTACK_ENDPOINT=http://localstack:4566
+      - S3_BUCKET_NAME=test-bucket
+      - AWS_REGION=us-east-1
+    depends_on:
+      - localstack
+      - postgres
+    networks:
+      - hellojava06-network
+
+volumes:
+  postgres_data:
+
+networks:
+  hellojava06-network:
+    driver: bridge

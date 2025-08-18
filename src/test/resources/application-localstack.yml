@@ -1,0 +1,42 @@
+# Test Configuration with LocalStack
+spring:
+  application:
+    name: hellojava06-test
+  profiles:
+    active: localstack
+
+  # H2 Test Database
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  flyway:
+    enabled: false # Disable for tests using create-drop
+
+# AWS S3 Configuration for Tests (will be overridden by Testcontainers)
+aws:
+  s3:
+    bucket-name: test-bucket
+    region: us-east-1
+    endpoint-url: # Will be set by Testcontainers
+    access-key: test
+    secret-key: test
+
+# Logging for tests
+logging:
+  level:
+    com.lithespeed: INFO
+    org.springframework.web: WARN
+    software.amazon.awssdk: WARN
+    org.testcontainers: INFO
