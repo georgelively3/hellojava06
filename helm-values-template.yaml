@@ -1,0 +1,176 @@
+# Enterprise Helm Values Template
+# This file shows the structure of values that would be provided by enterprise Helm charts
+
+# Application metadata
+app:
+  name: hellojava06
+  version: "1.0.0"
+  environment: "preprod" # or "uat", "prod"
+
+# Container configuration  
+image:
+  repository: your-enterprise-registry/hellojava06
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  managementPort: 8081
+
+# Resource limits (enterprise standards)
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+
+# Database configuration (provided by enterprise BOM)
+database:
+  host: "postgres-service.database.svc.cluster.local"
+  port: 5432
+  name: "hellojava06_preprod"
+  # Username and password would come from Kubernetes secrets
+  usernameSecret:
+    name: "hellojava06-db-credentials"
+    key: "username"
+  passwordSecret:
+    name: "hellojava06-db-credentials" 
+    key: "password"
+  
+  # Connection pool settings
+  pool:
+    maxSize: 20
+    minIdle: 5
+    connectionTimeout: 30000
+    idleTimeout: 600000
+    maxLifetime: 1800000
+
+# S3 configuration (provided by enterprise BOM)
+s3:
+  bucketName: "enterprise-hellojava06-preprod"
+  region: "us-east-1"
+  # IAM role for service account (no explicit credentials)
+  serviceAccount:
+    name: "hellojava06-s3-access"
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/hellojava06-s3-role"
+  
+  # Enterprise S3 settings
+  connectionTimeout: 10000
+  socketTimeout: 50000
+  maxConnections: 50
+  maxRetry: 3
+
+# Health check configuration
+health:
+  livenessProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: 8081
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health/readiness
+      port: 8081
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Monitoring and observability
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    path: /actuator/prometheus
+    port: 8081
+  
+# Logging configuration
+logging:
+  level:
+    app: "INFO"
+    spring: "WARN"
+    hibernate: "WARN"
+    aws: "WARN"
+    root: "WARN"
+
+# Security configuration
+security:
+  requireSsl: false # Handled by ingress/service mesh
+  
+# CORS configuration
+cors:
+  allowedOrigins: "https://mycompany-app.example.com"
+  allowedMethods: "GET,POST,PUT,DELETE,OPTIONS"
+  allowedHeaders: "*"
+  allowCredentials: false
+  maxAge: 3600
+
+# Environment-specific overrides would be provided by enterprise Helm charts
+# These values would be injected as environment variables into the container
+
+environmentVariables:
+  - name: SPRING_PROFILES_ACTIVE
+    value: "kubernetes,prod"
+  - name: APP_NAME
+    value: "hellojava06"
+  - name: APP_VERSION
+    value: "1.0.0"
+  - name: APP_ENVIRONMENT
+    value: "preprod"
+  
+  # Database configuration from secrets
+  - name: DATABASE_URL
+    value: "jdbc:postgresql://postgres-service.database.svc.cluster.local:5432/hellojava06_preprod"
+  - name: DB_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: hellojava06-db-credentials
+        key: username
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: hellojava06-db-credentials
+        key: password
+  
+  # S3 configuration
+  - name: S3_BUCKET_NAME
+    value: "enterprise-hellojava06-preprod"
+  - name: AWS_REGION
+    value: "us-east-1"
+  
+  # Management and monitoring
+  - name: MANAGEMENT_PORT
+    value: "8081"
+  - name: MANAGEMENT_ENDPOINTS
+    value: "health,info,metrics,prometheus"
+  
+  # Logging
+  - name: LOG_LEVEL_APP
+    value: "INFO"
+  - name: LOG_LEVEL_ROOT
+    value: "WARN"
+
+# Ingress configuration (handled by enterprise ingress controller)
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: hellojava06-preprod.mycompany.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: hellojava06-tls
+      hosts:
+        - hellojava06-preprod.mycompany.com

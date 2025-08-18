@@ -1,0 +1,107 @@
+# Kubernetes/Helm Configuration Profile
+spring:
+  application:
+    name: ${APP_NAME:hellojava06}
+  
+  # Database Configuration - Uses Kubernetes secrets and config maps
+  datasource:
+    url: ${DATABASE_URL}
+    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    
+    # Enterprise connection pool settings
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT:600000}
+      max-lifetime: ${DB_MAX_LIFETIME:1800000}
+      leak-detection-threshold: ${DB_LEAK_DETECTION_THRESHOLD:60000}
+    
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        
+  flyway:
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    
+# AWS S3 Configuration - Kubernetes service account with IAM roles
+aws:
+  s3:
+    bucket-name: ${S3_BUCKET_NAME}
+    region: ${AWS_REGION:us-east-1}
+    # No credentials specified - uses IAM roles for service accounts (IRSA)
+    connection-timeout: ${S3_CONNECTION_TIMEOUT:10000}
+    socket-timeout: ${S3_SOCKET_TIMEOUT:50000}
+    max-connections: ${S3_MAX_CONNECTIONS:50}
+    max-error-retry: ${S3_MAX_RETRY:3}
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:}
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+    
+# Management endpoints for Kubernetes probes and monitoring
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+      probes:
+        enabled: true # Enable Kubernetes probes
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+    db:
+      enabled: true
+
+# Logging for containerized environments
+logging:
+  level:
+    com.lithespeed: ${LOG_LEVEL_APP:INFO}
+    org.springframework: WARN
+    org.hibernate: WARN
+    software.amazon.awssdk: WARN
+    root: WARN
+  pattern:
+    # JSON logging for better log aggregation in Kubernetes
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    
+# Application-specific configuration
+app:
+  environment: ${APP_ENVIRONMENT:kubernetes}
+  version: ${APP_VERSION:@project.version@}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+    allow-credentials: false
+    max-age: 3600
