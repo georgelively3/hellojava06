@@ -1,6 +1,7 @@
 package com.lithespeed.hellojava06.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -22,7 +23,7 @@ import java.time.Duration;
 @Configuration
 public class S3Config {
 
-    @Value("${aws.s3.region}")
+    @Value("${aws.s3.region:us-east-1}")
     private String region;
 
     @Value("${aws.s3.access-key:}")
@@ -33,6 +34,9 @@ public class S3Config {
 
     @Value("${aws.s3.endpoint-url:}")
     private String endpointUrl;
+
+    @Value("${aws.s3.enabled:false}")
+    private boolean s3Enabled;
 
     // Enterprise configuration values
     @Value("${aws.s3.connection-timeout:10000}")
@@ -49,15 +53,16 @@ public class S3Config {
 
     /**
      * Production S3 Client - Uses IAM roles or explicit credentials
-     * Configured for enterprise workloads with proper timeouts and retry policies
+     * Only created when explicitly enabled and in production profiles
      */
     @Bean
-    @Profile({ "prod", "uat", "preprod", "!localstack", "!test" })
+    @ConditionalOnProperty(name = "aws.s3.enabled", havingValue = "true")
+    @Profile({ "prod", "production", "uat", "preprod" })
     public S3Client enterpriseS3Client() {
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region))
                 .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(false) // Use virtual-hosted style for AWS S3
+                        .pathStyleAccessEnabled(false)
                         .build())
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
                         .apiCallTimeout(Duration.ofMillis(socketTimeout))
@@ -67,17 +72,10 @@ public class S3Config {
                                 .build())
                         .build());
 
-        // Use explicit credentials if provided, otherwise use default credential chain
-        // In enterprise environments, prefer IAM roles over explicit credentials
         if (hasExplicitCredentials()) {
             AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
             builder.credentialsProvider(StaticCredentialsProvider.create(credentials));
         } else {
-            // Default credential provider chain:
-            // 1. Java system properties
-            // 2. Environment variables
-            // 3. IAM instance/container credentials
-            // 4. IAM roles for service accounts (in Kubernetes)
             builder.credentialsProvider(DefaultCredentialsProvider.create());
         }
 
@@ -88,17 +86,16 @@ public class S3Config {
      * LocalStack S3 Client for development and testing
      */
     @Bean
-    @Primary
-    @Profile({ "localstack", "!test" })
+    @ConditionalOnProperty(name = "aws.s3.enabled", havingValue = "true")
+    @Profile({ "localstack" })
     public S3Client localStackS3Client() {
-        // LocalStack credentials (these are dummy values for LocalStack)
         AwsBasicCredentials credentials = AwsBasicCredentials.create("test", "test");
 
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(credentials))
                 .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(true) // LocalStack requires path-style access
+                        .pathStyleAccessEnabled(true)
                         .build())
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
                         .apiCallTimeout(Duration.ofMillis(socketTimeout))
@@ -108,7 +105,6 @@ public class S3Config {
                                 .build())
                         .build());
 
-        // Use custom endpoint if provided (for LocalStack)
         if (endpointUrl != null && !endpointUrl.isEmpty()) {
             builder.endpointOverride(URI.create(endpointUrl));
         }
@@ -117,9 +113,32 @@ public class S3Config {
     }
 
     /**
-     * Credentials provider bean for use by other components if needed
+     * Mock S3 Client for development when S3 is disabled
+     * This prevents startup failures when S3 is not configured
      */
     @Bean
+    @Primary
+    @ConditionalOnProperty(name = "aws.s3.enabled", havingValue = "false", matchIfMissing = true)
+    public S3Client mockS3Client() {
+        // Return a mock client that won't try to connect to AWS
+        // This uses dummy credentials and endpoint
+        AwsBasicCredentials credentials = AwsBasicCredentials.create("dummy", "dummy");
+
+        return S3Client.builder()
+                .region(Region.US_EAST_1)
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .endpointOverride(URI.create("http://localhost:9999")) // Dummy endpoint
+                .serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build())
+                .build();
+    }
+
+    /**
+     * Credentials provider bean
+     */
+    @Bean
+    @ConditionalOnProperty(name = "aws.s3.enabled", havingValue = "true")
     public AwsCredentialsProvider awsCredentialsProvider() {
         if (hasExplicitCredentials()) {
             return StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
