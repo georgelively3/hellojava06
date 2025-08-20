@@ -111,7 +111,7 @@ task integrationTest(type: Test) {
     jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
     jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
     systemProperty 'file.encoding', 'UTF-8'
-    systemProperty 'spring.profiles.active', 'mountebank'
+    systemProperty 'spring.profiles.active', 'test'
     
     shouldRunAfter test
     finalizedBy jacocoTestReport
@@ -134,17 +134,15 @@ task unitTest(type: Test) {
     systemProperty 'file.encoding', 'UTF-8'
 }
 
-// S3-specific tests with Mountebank
+// S3-specific tests (now handled by Karate API tests)
 task s3Test(type: Test) {
-    description = 'Run S3-specific tests with Mountebank service virtualization'
+    description = 'Run S3-specific tests via Karate API testing'
     group = 'verification'
     useJUnitPlatform()
     
-    include '**/S3*Test.class'
-    include '**/integration/S3*Test.class'
-    include '**/karate/**/s3*.class'
+    include '**/karate/**'
     
-    systemProperty 'spring.profiles.active', 'mountebank'
+    systemProperty 'spring.profiles.active', 'test'
     
     jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
     jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
