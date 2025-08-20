@@ -240,45 +240,6 @@ class MainControllerTest {
         verify(userService, times(1)).getUserCount();
     }
 
-    // ========== S3 TESTS ==========
-
-    @Test
-    void uploadFile_WithValidFile_ShouldReturnSuccessResponse() throws Exception {
-        // Given
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "test.txt", "text/plain", "test content".getBytes());
-        String expectedUrl = "https://bucket.s3.region.amazonaws.com/test.txt";
-        when(s3Service.uploadFile(anyString(), any())).thenReturn(expectedUrl);
-
-        // When & Then
-        mockMvc.perform(multipart("/api/s3/upload")
-                .file(file)
-                .param("key", "test.txt"))
-                .andExpect(status().isCreated())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.message").value("File uploaded successfully"))
-                .andExpect(jsonPath("$.key").value("test.txt"))
-                .andExpect(jsonPath("$.url").value(expectedUrl));
-
-        verify(s3Service, times(1)).uploadFile(anyString(), any());
-    }
-
-    @Test
-    void listFiles_ShouldReturnFileList() throws Exception {
-        // Given
-        List<String> files = Arrays.asList("file1.txt", "file2.txt");
-        when(s3Service.listFiles("")).thenReturn(files);
-
-        // When & Then
-        mockMvc.perform(get("/api/s3/list"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.files.length()").value(2))
-                .andExpect(jsonPath("$.count").value(2));
-
-        verify(s3Service, times(1)).listFiles("");
-    }
-
     @Test
     void healthCheck_ShouldReturnHealthStatus() throws Exception {
         // When & Then

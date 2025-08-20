@@ -43,9 +43,8 @@ dependencies {
     // Swagger/OpenAPI for API documentation
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
     
-    // LocalStack for S3 service virtualization
-    testImplementation 'org.testcontainers:localstack:1.19.1'
-    testImplementation 'com.amazonaws:aws-java-sdk-s3:1.12.565' // For LocalStack compatibility
+    // WireMock for service virtualization (better alternative to Mountebank for Java)
+    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.1'
     
     // Development tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -56,11 +55,8 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:junit-jupiter'
     
-    // Cucumber
-    testImplementation 'io.cucumber:cucumber-java:7.15.0'
-    testImplementation 'io.cucumber:cucumber-spring:7.15.0'
-    testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.15.0'
-    testImplementation 'org.junit.platform:junit-platform-suite'
+    // Karate for API testing
+    testImplementation 'com.intuit.karate:karate-junit5:1.4.1'
 }
 
 tasks.named('test') {
@@ -73,7 +69,7 @@ tasks.named('test') {
     systemProperty 'file.encoding', 'UTF-8'
     
     // Exclude problematic test classes that require Docker
-    exclude '**/cucumber/**'
+    exclude '**/karate/**'
     exclude '**/integration/**'
 }
 
@@ -103,19 +99,19 @@ jacocoTestCoverageVerification {
 
 check.dependsOn jacocoTestCoverageVerification
 
-// Integration tests that require Docker
+// Integration tests that require Docker or external services
 task integrationTest(type: Test) {
-    description = 'Run integration tests that require Docker'
+    description = 'Run integration tests that require Docker or external services'
     group = 'verification'
     useJUnitPlatform()
     
-    include '**/cucumber/**'
+    include '**/karate/**'
     include '**/integration/**'
     
     jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
     jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
     systemProperty 'file.encoding', 'UTF-8'
-    systemProperty 'spring.profiles.active', 'localstack'
+    systemProperty 'spring.profiles.active', 'mountebank'
     
     shouldRunAfter test
     finalizedBy jacocoTestReport
@@ -129,7 +125,7 @@ task unitTest(type: Test) {
     
     include '**/*Test.class'
     exclude '**/integration/**'
-    exclude '**/cucumber/**'
+    exclude '**/karate/**'
     
     systemProperty 'spring.profiles.active', 'test'
     
@@ -138,16 +134,33 @@ task unitTest(type: Test) {
     systemProperty 'file.encoding', 'UTF-8'
 }
 
-// S3-specific tests with LocalStack
+// S3-specific tests with Mountebank
 task s3Test(type: Test) {
-    description = 'Run S3-specific tests with LocalStack'
+    description = 'Run S3-specific tests with Mountebank service virtualization'
     group = 'verification'
     useJUnitPlatform()
     
     include '**/S3*Test.class'
     include '**/integration/S3*Test.class'
+    include '**/karate/**/s3*.class'
     
-    systemProperty 'spring.profiles.active', 'localstack'
+    systemProperty 'spring.profiles.active', 'mountebank'
+    
+    jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+    jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
+// Karate API tests
+task karateTest(type: Test) {
+    description = 'Run Karate API tests'
+    group = 'verification'
+    useJUnitPlatform()
+    
+    include '**/karate/**'
+    
+    systemProperty 'spring.profiles.active', 'mountebank'
+    systemProperty 'karate.options', '--tags ~@ignore'
     
     jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
     jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
