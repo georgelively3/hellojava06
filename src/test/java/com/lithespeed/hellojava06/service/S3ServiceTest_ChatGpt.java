@@ -20,7 +20,7 @@ class S3ServiceTest {
     static Stream<S3Service> serviceProvider() {
         return Stream.of(
                 new FakeS3Service(),
-                new AwsS3Service() {
+                new AwsS3Service_ChatGpt() {
                     @Override
                     public void uploadFile(String key, byte[] content) {
                         // stubbed for unit test

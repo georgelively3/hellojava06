@@ -10,12 +10,12 @@ import static org.mockito.Mockito.*;
 class AwsS3ServiceTest {
 
     private S3Client s3Client;
-    private AwsS3Service awsS3Service;
+    private AwsS3Service_ChatGpt awsS3Service;
 
     @BeforeEach
     void setUp() {
         s3Client = mock(S3Client.class);
-        awsS3Service = new AwsS3Service(s3Client, "my-bucket");
+        awsS3Service = new AwsS3Service_ChatGpt(s3Client, "my-bucket");
     }
 
     @Test
