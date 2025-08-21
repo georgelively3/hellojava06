@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@Profile({ "fake-s3", "default" })
+@Profile({"fake-s3", "default", "test"})
 public class FakeS3Service implements S3Service {
 
     private final List<String> files = new ArrayList<>();
