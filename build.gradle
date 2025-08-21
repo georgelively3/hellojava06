@@ -43,8 +43,8 @@ dependencies {
     // Swagger/OpenAPI for API documentation
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
     
-    // WireMock for service virtualization (better alternative to Mountebank for Java)
-    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.1'
+    // WireMock for service virtualization
+    testImplementation 'com.github.tomakehurst:wiremock-jre8-standalone:2.35.1'
     
     // Development tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -149,20 +149,39 @@ task s3Test(type: Test) {
     systemProperty 'file.encoding', 'UTF-8'
 }
 
-// Karate API tests
-task karateTest(type: Test) {
-    description = 'Run Karate API tests'
+// DEV Integration tests with WireMock service virtualization  
+task devIntegrationTest(type: Test) {
+    description = 'Run integration tests with WireMock S3 service virtualization for DEV/INT environments'
     group = 'verification'
     useJUnitPlatform()
     
-    include '**/karate/**'
+    include '**/karate/DevIntegrationTestRunner.class'
     
-    systemProperty 'spring.profiles.active', 'mountebank'
-    systemProperty 'karate.options', '--tags ~@ignore'
+    systemProperty 'spring.profiles.active', 'fake-s3'
     
     jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
     jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
     systemProperty 'file.encoding', 'UTF-8'
+    
+    shouldRunAfter test
+}
+
+// PREPROD Integration tests with real AWS S3
+task preprodIntegrationTest(type: Test) {
+    description = 'Run integration tests with real AWS S3 for PREPROD environment'
+    group = 'verification'
+    useJUnitPlatform()
+    
+    include '**/karate/PreprodIntegrationTestRunner.class'
+    
+    systemProperty 'spring.profiles.active', 'preprod'
+    systemProperty 'FLYWAY_ENABLED', 'false'  // Disable DB for API testing
+    
+    jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+    jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+    systemProperty 'file.encoding', 'UTF-8'
+    
+    shouldRunAfter test
 }
 
 wrapper {

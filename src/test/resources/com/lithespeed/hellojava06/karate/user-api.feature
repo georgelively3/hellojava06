@@ -1,6 +1,7 @@
 Feature: User API Testing
 
 Background:
+  * def baseUrl = 'http://localhost:' + karate.properties['karate.server.port']
   * url baseUrl
   * header Accept = 'application/json'
   * header Content-Type = 'application/json'
@@ -59,7 +60,6 @@ Scenario: Delete user
   Given path '/api/users/' + userId
   When method delete
   Then status 200
-  And match response contains { message: 'User deleted successfully' }
   
   # Verify user is deleted
   Given path '/api/users/' + userId

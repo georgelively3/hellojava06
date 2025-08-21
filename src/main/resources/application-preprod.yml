@@ -1,0 +1,33 @@
+spring:
+  banner:
+    location: classpath:banner-preprod.txt
+  # Disable Flyway for container testing - enable in production
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    location: classpath:db/migration
+    url: ${spring.datasource.url}
+    schemas: poc048
+  datasource:
+    url: jdbc:postgresql://${AURORA_CLUSTER_ENDPOINT:localhost}:${DB_PORT:5432}/${DB_NAME:hellojava06}?currentSchema=poc048
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+    # For container testing without database
+    hikari:
+      initialization-fail-timeout: ${DB_INIT_TIMEOUT:1}
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:none}
+    show-sql: false
+  config:
+    import: "optional:file:${APPCRUD_DB_CREDS_LOCATION:}, optional:file:${DDLMGR_DB_CREDS_LOCATION:}"
+
+# AWS S3 Configuration for preprod
+aws:
+  s3:
+    bucket-name: ${S3_BUCKET_NAME:preprod-test-bucket}
+    region: ${AWS_REGION:us-east-1}
+
+db:
+  credentials:
+    file: optional:file:${APPCRUD_DB_CREDS_LOCATION:}

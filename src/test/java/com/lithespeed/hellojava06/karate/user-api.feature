@@ -1,66 +1,67 @@
 Feature: User API Testing
 
 Background:
+  * def baseUrl = 'http://localhost:' + karate.properties['karate.server.port']
   * url baseUrl
   * header Accept = 'application/json'
   * header Content-Type = 'application/json'
 
 Scenario: Create a new user
-  Given path '/users'
-  And request { name: 'John Doe', email: 'john.doe@example.com' }
+  Given path '/api/users'
+  And request { username: 'johndoe', email: 'john.doe@example.com', firstName: 'John', lastName: 'Doe' }
   When method post
   Then status 201
-  And match response == { id: '#present', name: 'John Doe', email: 'john.doe@example.com' }
+  And match response == { id: '#present', username: 'johndoe', email: 'john.doe@example.com', firstName: 'John', lastName: 'Doe', createdAt: '#present', updatedAt: '#present' }
 
 Scenario: Get all users
-  Given path '/users'
+  Given path '/api/users'
   When method get
   Then status 200
   And match response == '#array'
 
 Scenario: Get user by ID
   # First create a user
-  Given path '/users'
-  And request { name: 'Jane Smith', email: 'jane.smith@example.com' }
+  Given path '/api/users'
+  And request { username: 'janesmith', email: 'jane.smith@example.com', firstName: 'Jane', lastName: 'Smith' }
   When method post
   Then status 201
   And def userId = response.id
   
   # Now get the user by ID
-  Given path '/users/' + userId
+  Given path '/api/users/' + userId
   When method get
   Then status 200
-  And match response == { id: '#(userId)', name: 'Jane Smith', email: 'jane.smith@example.com' }
+  And match response == { id: '#(userId)', username: 'janesmith', email: 'jane.smith@example.com', firstName: 'Jane', lastName: 'Smith', createdAt: '#present', updatedAt: '#present' }
 
 Scenario: Update user
   # First create a user
-  Given path '/users'
-  And request { name: 'Bob Wilson', email: 'bob.wilson@example.com' }
+  Given path '/api/users'
+  And request { username: 'bobwilson', email: 'bob.wilson@example.com', firstName: 'Bob', lastName: 'Wilson' }
   When method post
   Then status 201
   And def userId = response.id
   
   # Update the user
-  Given path '/users/' + userId
-  And request { name: 'Bob Updated', email: 'bob.updated@example.com' }
+  Given path '/api/users/' + userId
+  And request { username: 'bobupdated', email: 'bob.updated@example.com', firstName: 'Bob', lastName: 'Updated' }
   When method put
   Then status 200
-  And match response == { id: '#(userId)', name: 'Bob Updated', email: 'bob.updated@example.com' }
+  And match response == { id: '#(userId)', username: 'bobupdated', email: 'bob.updated@example.com', firstName: 'Bob', lastName: 'Updated', createdAt: '#present', updatedAt: '#present' }
 
 Scenario: Delete user
   # First create a user
-  Given path '/users'
-  And request { name: 'Alice Brown', email: 'alice.brown@example.com' }
+  Given path '/api/users'
+  And request { username: 'alicebrown', email: 'alice.brown@example.com', firstName: 'Alice', lastName: 'Brown' }
   When method post
   Then status 201
   And def userId = response.id
   
   # Delete the user
-  Given path '/users/' + userId
+  Given path '/api/users/' + userId
   When method delete
-  Then status 204
+  Then status 200
   
   # Verify user is deleted
-  Given path '/users/' + userId
+  Given path '/api/users/' + userId
   When method get
   Then status 404

@@ -6,26 +6,26 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Basic Karate Test Runner for unit-style API testing
- * Uses fake-s3 profile for simple endpoint testing without external
- * dependencies
+ * Preprod Test Runner - Uses real AWS S3 services
+ * Requires proper AWS credentials and S3 bucket configuration
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("fake-s3")
-public class KarateTestRunner {
+@ActiveProfiles("preprod")
+public class PreprodIntegrationTestRunner {
 
     @LocalServerPort
     private int serverPort;
 
     @Karate.Test
-    Karate testUsers() {
+    Karate testUsersInPreprod() {
         System.setProperty("karate.server.port", String.valueOf(serverPort));
         return Karate.run("user-api").relativeTo(getClass());
     }
 
     @Karate.Test
-    Karate testS3() {
+    Karate testS3InPreprod() {
         System.setProperty("karate.server.port", String.valueOf(serverPort));
+        // No WireMock - uses real AWS S3
         return Karate.run("s3-api").relativeTo(getClass());
     }
 }

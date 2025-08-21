@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Profile({ "aws-s3", "prod", "production" })
+@Profile({ "aws-s3", "prod", "production", "preprod" })
 public class AwsS3Service implements S3Service {
 
     private final S3Client s3Client;
