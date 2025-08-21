@@ -1,27 +1,32 @@
-package com.example.hellojava.service;
+package com.lithespeed.hellojava06.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 class AwsS3ServiceTest {
 
     private S3Client s3Client;
-    private AwsS3Service_ChatGpt awsS3Service;
+    private AwsS3Service awsS3Service;
 
     @BeforeEach
     void setUp() {
         s3Client = mock(S3Client.class);
-        awsS3Service = new AwsS3Service_ChatGpt(s3Client, "my-bucket");
+        awsS3Service = new AwsS3Service(s3Client, "my-bucket");
     }
 
     @Test
     void uploadFileCallsS3PutObject() {
         PutObjectResponse putResponse = PutObjectResponse.builder().build();
-        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class))).thenReturn(putResponse);
+        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+                .thenReturn(putResponse);
 
         awsS3Service.uploadFile("file1.txt");
 
@@ -35,8 +40,10 @@ class AwsS3ServiceTest {
                 .build();
         when(s3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(response);
 
-        awsS3Service.listFiles();
+        List<String> files = awsS3Service.listFiles();
 
         verify(s3Client).listObjects(any(ListObjectsRequest.class));
+        assertEquals(1, files.size());
+        assertEquals("file1.txt", files.get(0));
     }
 }

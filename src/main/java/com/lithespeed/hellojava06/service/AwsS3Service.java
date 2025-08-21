@@ -1,6 +1,7 @@
-package com.example.hellojava.service;
+package com.lithespeed.hellojava06.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -15,20 +16,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Profile({ "aws-s3", "prod", "production" })
 public class AwsS3Service implements S3Service {
 
     private final S3Client s3Client;
     private final String bucketName;
 
-    // Constructor for injecting a mock S3Client in tests
+    // For unit testing with mock S3Client
     public AwsS3Service(S3Client s3Client, String bucketName) {
         this.s3Client = s3Client;
         this.bucketName = bucketName;
     }
 
-    // Production constructor: reads region and bucket-name from properties
-    public AwsS3Service(@Value("${aws.region}") String region,
-            @Value("${aws.bucket-name}") String bucketName) {
+    // Production constructor
+    public AwsS3Service(@Value("${aws.s3.region}") String region,
+            @Value("${aws.s3.bucket-name}") String bucketName) {
         this(
                 S3Client.builder()
                         .region(Region.of(region))
@@ -44,7 +46,6 @@ public class AwsS3Service implements S3Service {
                 .key(fileName)
                 .build();
 
-        // For now, just upload dummy content
         s3Client.putObject(request, RequestBody.fromString("dummy content"));
     }
 

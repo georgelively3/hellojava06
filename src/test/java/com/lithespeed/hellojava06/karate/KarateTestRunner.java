@@ -1,10 +1,8 @@
 package com.lithespeed.hellojava06.karate;
 
 import com.intuit.karate.junit5.Karate;
-import com.lithespeed.hellojava06.config.TestS3Config;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -13,7 +11,6 @@ import org.springframework.test.context.ActiveProfiles;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Import(TestS3Config.class)
 public class KarateTestRunner {
 
     @LocalServerPort
