@@ -5,6 +5,7 @@ Background:
   * url baseUrl
   * header Accept = 'application/json'
 
+@integration @karate
 Scenario: Upload file via S3 API
   Given path '/s3/upload'
   And param fileName = 'test-file.txt'
@@ -12,6 +13,7 @@ Scenario: Upload file via S3 API
   Then status 200
   And match response == 'Uploaded: test-file.txt'
 
+@integration @karate
 Scenario: List files via S3 API
   # First upload a file
   Given path '/s3/upload'
@@ -26,6 +28,7 @@ Scenario: List files via S3 API
   And match response == '#array'
   And match response contains 'list-test-file.txt'
 
+@integration @karate
 Scenario: S3 Health Check
   Given path '/s3/health'
   When method get
