@@ -1,56 +1,43 @@
-package com.example.s3demo.controller;
-
-import com.example.s3demo.service.S3Service;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-@WebMvcTest(S3Controller.class)
+@ExtendWith(MockitoExtension.class)
 class S3ControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private S3Service s3Service;
 
-    @Test
-    void uploadFile_shouldReturn200() throws Exception {
-        doNothing().when(s3Service).uploadFile(Mockito.eq("test.txt"), any());
+    @InjectMocks
+    private S3Controller s3Controller;
 
-        mockMvc.perform(multipart("/s3/upload")
-                .file("file", "Hello World".getBytes())
-                .param("key", "test.txt"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("File uploaded successfully"));
+    @Test
+    void testUpload() {
+        String fileName = "test.txt";
+
+        doNothing().when(s3Service).uploadFile(fileName);
+
+        ResponseEntity<String> response = s3Controller.upload(fileName);
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals("File uploaded successfully: " + fileName, response.getBody());
+        verify(s3Service, times(1)).uploadFile(fileName);
     }
 
     @Test
-    void downloadFile_shouldReturnContent() throws Exception {
-        when(s3Service.downloadFile("test.txt"))
-                .thenReturn("Hello World".getBytes());
+    void testListFiles() {
+        List<String> files = Arrays.asList("file1.txt", "file2.txt");
+        when(s3Service.listFiles()).thenReturn(files);
 
-        mockMvc.perform(get("/s3/download/test.txt"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Hello World"));
+        ResponseEntity<List<String>> response = s3Controller.listFiles();
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(files, response.getBody());
+        verify(s3Service, times(1)).listFiles();
     }
 
     @Test
-    void deleteFile_shouldReturn200() throws Exception {
-        doNothing().when(s3Service).deleteFile("test.txt");
+    void testHealthCheck() {
+        ResponseEntity<Map<String, String>> response = s3Controller.healthCheck();
 
-        mockMvc.perform(delete("/s3/delete/test.txt"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("File deleted successfully"));
+        assertEquals(200, response.getStatusCodeValue());
+        assertTrue(response.getBody().containsKey("status"));
+        assertEquals("UP", response.getBody().get("status"));
     }
 }
