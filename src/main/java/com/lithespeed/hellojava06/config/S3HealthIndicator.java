@@ -10,7 +10,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 
 @Component("s3")
-@Profile("!test")
+@Profile({ "aws-s3", "prod", "production" })
 @ConditionalOnProperty(name = "spring.health.s3.enabled", havingValue = "true", matchIfMissing = true)
 public class S3HealthIndicator implements HealthIndicator {
 
