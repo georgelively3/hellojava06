@@ -143,36 +143,144 @@ task integrationTest() {
     finalizedBy jacocoTestReport
 }
 
-// Your org's proven intTest pattern - simplified and working
-task intTest() {
-    description = 'Integration tests using org CLI pattern (requires running app)'
+// WireMock Setup Task (similar to your mountebankSetup)
+task wireMockSetup() {
+    description = 'Start WireMock server for service virtualization'
     group = 'verification'
-    dependsOn assemble, testClasses
+    
+    doFirst {
+        def wireMockPort = System.getenv('WIREMOCK_PORT') ?: '9999'
+        def wireMockDir = 'src/test/resources/wiremock'
+        
+        println "Starting WireMock server on port ${wireMockPort}"
+        println "WireMock mappings directory: ${wireMockDir}"
+        
+        // Start WireMock as background process
+        ProcessBuilder pb = new ProcessBuilder([
+            'java', '-jar', 
+            configurations.testRuntimeClasspath.find { it.name.contains('wiremock') }.absolutePath,
+            '--port', wireMockPort,
+            '--root-dir', wireMockDir,
+            '--verbose'
+        ])
+        pb.directory(project.projectDir)
+        pb.redirectErrorStream(true)
+        
+        def logFile = new File(project.buildDir, 'wiremock.log')
+        logFile.parentFile.mkdirs()
+        pb.redirectOutput(logFile)
+        
+        def process = pb.start()
+        
+        // Store process info for cleanup
+        project.ext.wireMockProcess = process
+        project.ext.wireMockPort = wireMockPort
+        
+        // Wait for WireMock to start
+        sleep(2000)
+        println "WireMock server started on port ${wireMockPort}"
+    }
+}
+
+// WireMock Cleanup Task
+task wireMockTeardown() {
+    description = 'Stop WireMock server'
+    group = 'verification'
+    
+    doFirst {
+        if (project.hasProperty('wireMockProcess')) {
+            println "Stopping WireMock server..."
+            project.wireMockProcess.destroy()
+            sleep(1000)
+            println "WireMock server stopped"
+        }
+    }
+}
+
+// Your org's proven intTest pattern - enhanced with service virtualization
+task intTest() {
+    description = 'Integration tests using org CLI pattern with service virtualization'
+    group = 'verification'
+    dependsOn assemble, testClasses, wireMockSetup
+    finalizedBy wireMockTeardown
     
     doFirst {
         def karateOutputDir = 'build/inttest-reports'
         project.ext.karateOutputDir = karateOutputDir
         
-        // Following org's environment pattern
+        // Environment detection - same pattern as your Mountebank approach
+        def environment = System.getenv('TEST_ENVIRONMENT') ?: 'int'
         def userHost = System.getenv('USERHOST') ?: 'localhost'
         def baseUrl = System.getenv("SOME_URL") ?: "http://${userHost}:8080"
         
-        println "Running intTest with baseUrl: ${baseUrl}"
-        println "NOTE: Ensure application is running on the target URL before executing this test"
+        // Service virtualization configuration (like your Mountebank setup)
+        def wireMockPort = project.hasProperty('wireMockPort') ? project.wireMockPort : '9999'
+        def dependentServiceUrl = "http://localhost:${wireMockPort}"
+        
+        println "Running intTest in environment: ${environment}"
+        println "Application URL: ${baseUrl}"
+        println "Service virtualization URL: ${dependentServiceUrl}"
         
         javaexec {
             main = 'com.intuit.karate.cli.Main'
             classpath = sourceSets.test.runtimeClasspath
             args = [
                 'classpath:com/lithespeed/hellojava06/karate',
-                '-t', '@karate',  // Following org's tag pattern
+                '-t', '@karate',
                 '-o', karateOutputDir,
                 '--threads', '1'
             ]
             systemProperties = [
                 'baseUrl': baseUrl,
-                'karate.env': 'dev',  // Use dev environment 
-                'karate.server.port': baseUrl.split(':')[2] ?: '8080'  // Extract port from URL
+                'karate.env': environment,
+                'wiremock.url': dependentServiceUrl,
+                'external.service.url': dependentServiceUrl,  // Point to WireMock
+                'karate.server.port': baseUrl.split(':')[2] ?: '8080'
+            ]
+            jvmArgs = [
+                '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+            ]
+        }
+    }
+}
+
+// PREPROD tests - identical Karate files, different configuration
+task preprodTest() {
+    description = 'Integration tests for PREPROD with real dependencies'
+    group = 'verification'
+    dependsOn assemble, testClasses
+    // Note: No wireMockSetup dependency - uses real services
+    
+    doFirst {
+        def karateOutputDir = 'build/preprodtest-reports'
+        project.ext.karateOutputDir = karateOutputDir
+        
+        def environment = 'preprod'
+        def userHost = System.getenv('USERHOST') ?: System.getenv('PREPROD_HOST') ?: 'preprod.yourorg.com'
+        def baseUrl = System.getenv("SOME_URL") ?: "https://${userHost}"
+        
+        // Real service URLs (no service virtualization)
+        def realServiceUrl = System.getenv('EXTERNAL_SERVICE_URL') ?: 'https://api.external-service.com'
+        
+        println "Running preprodTest in environment: ${environment}"
+        println "Application URL: ${baseUrl}"
+        println "Real service URL: ${realServiceUrl}"
+        
+        javaexec {
+            main = 'com.intuit.karate.cli.Main'
+            classpath = sourceSets.test.runtimeClasspath
+            args = [
+                'classpath:com/lithespeed/hellojava06/karate',
+                '-t', '@karate',
+                '-o', karateOutputDir,
+                '--threads', '1'
+            ]
+            systemProperties = [
+                'baseUrl': baseUrl,
+                'karate.env': environment,
+                'external.service.url': realServiceUrl,  // Point to real service
+                'karate.server.port': baseUrl.split(':')[2] ?: '443'
             ]
             jvmArgs = [
                 '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
