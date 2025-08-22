@@ -22,11 +22,22 @@ spring:
   config:
     import: "optional:file:${APPCRUD_DB_CREDS_LOCATION:}, optional:file:${DDLMGR_DB_CREDS_LOCATION:}"
 
-# AWS S3 Configuration for preprod
+# AWS S3 Configuration - K8s/Helm integrated
 aws:
   s3:
-    bucket-name: ${S3_BUCKET_NAME:preprod-test-bucket}
+    # BOM/Helm will provide these via ConfigMap/Secret
+    bucket-name: ${S3_BUCKET_NAME}  # From your BOM provisioning
     region: ${AWS_REGION:us-east-1}
+    
+    # IAM Role-based access (no hardcoded keys)
+    # Your Helm charts should set up IRSA (IAM Roles for Service Accounts)
+    use-iam-role: ${AWS_USE_IAM_ROLE:true}
+    role-arn: ${AWS_ROLE_ARN:}  # Optional: explicit role ARN
+    
+    # Connection settings for K8s environment
+    connection-timeout: ${S3_CONNECTION_TIMEOUT:10000}
+    socket-timeout: ${S3_SOCKET_TIMEOUT:30000}
+    max-connections: ${S3_MAX_CONNECTIONS:25}
 
 db:
   credentials:

@@ -620,3 +620,308 @@ curl http://localhost:9999/health
 ```
 
 This setup provides a **clean, org-compliant approach** that uses WireMock instead of Mountebank while maintaining the same service virtualization patterns your organization already trusts.
+
+## 🚢 Kubernetes/Helm/BOM Integration Guide
+
+When deploying to PREPROD and PROD with Kubernetes, your BOM and Helm charts already provision S3 buckets. Here's how to align your Spring Boot configuration with your K8s environment.
+
+### 🎯 Key Integration Points
+
+Your **BOM/Helm setup** likely provides these through ConfigMaps, Secrets, or environment variables:
+- `S3_BUCKET_NAME` - The provisioned bucket name
+- `AWS_REGION` - Your target AWS region  
+- `AWS_ROLE_ARN` - IAM role for S3 access (preferred over access keys)
+- Service account annotations for IAM roles (IRSA - IAM Roles for Service Accounts)
+
+### 📋 Updated Application Configuration
+
+#### application-preprod.yml (K8s aligned)
+```yaml
+spring:
+  banner:
+    location: classpath:banner-preprod.txt
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    location: classpath:db/migration
+    url: ${spring.datasource.url}
+    schemas: poc048
+  datasource:
+    url: jdbc:postgresql://${AURORA_CLUSTER_ENDPOINT:localhost}:${DB_PORT:5432}/${DB_NAME:hellojava06}?currentSchema=poc048
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+    hikari:
+      initialization-fail-timeout: ${DB_INIT_TIMEOUT:1}
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:none}
+    show-sql: false
+  config:
+    import: "optional:file:${APPCRUD_DB_CREDS_LOCATION:}, optional:file:${DDLMGR_DB_CREDS_LOCATION:}"
+
+# AWS S3 Configuration - K8s/Helm integrated
+aws:
+  s3:
+    # BOM/Helm will provide these via ConfigMap/Secret
+    bucket-name: ${S3_BUCKET_NAME}  # From your BOM provisioning
+    region: ${AWS_REGION:us-east-1}
+    
+    # IAM Role-based access (no hardcoded keys)
+    # Your Helm charts should set up IRSA (IAM Roles for Service Accounts)
+    use-iam-role: ${AWS_USE_IAM_ROLE:true}
+    role-arn: ${AWS_ROLE_ARN:}  # Optional: explicit role ARN
+    
+    # Connection settings for K8s environment
+    connection-timeout: ${S3_CONNECTION_TIMEOUT:10000}
+    socket-timeout: ${S3_SOCKET_TIMEOUT:30000}
+    max-connections: ${S3_MAX_CONNECTIONS:25}
+
+db:
+  credentials:
+    file: optional:file:${APPCRUD_DB_CREDS_LOCATION:}
+```
+
+#### application-prod.yml (K8s enterprise ready)
+```yaml
+spring:
+  application:
+    name: ${APP_NAME:hellojava06}
+  
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:hellojava06}}
+    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT:600000}
+      max-lifetime: ${DB_MAX_LIFETIME:1800000}
+      leak-detection-threshold: ${DB_LEAK_DETECTION_THRESHOLD:60000}
+    
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: ${JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: ${JPA_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+        jdbc:
+          batch_size: ${JPA_BATCH_SIZE:20}
+        order_inserts: true
+        order_updates: true
+        
+  flyway:
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
+    validate-on-migrate: ${FLYWAY_VALIDATE_ON_MIGRATE:true}
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration}
+    
+# AWS S3 Configuration - Production K8s
+aws:
+  s3:
+    # BOM/Helm provides these via secure mechanisms
+    bucket-name: ${S3_BUCKET_NAME}  # From your BOM
+    region: ${AWS_REGION:us-east-1}
+    
+    # Production IAM setup (no access keys in config)
+    use-iam-role: true
+    role-arn: ${AWS_ROLE_ARN:}  # Service account annotation
+    role-session-name: ${AWS_ROLE_SESSION_NAME:hellojava06-prod}
+    
+    # Enterprise S3 settings
+    connection-timeout: ${S3_CONNECTION_TIMEOUT:10000}
+    socket-timeout: ${S3_SOCKET_TIMEOUT:50000}
+    max-connections: ${S3_MAX_CONNECTIONS:50}
+    max-error-retry: ${S3_MAX_RETRY:3}
+    
+    # Additional production settings
+    accelerate-mode-enabled: ${S3_ACCELERATE_MODE:false}
+    dual-stack-enabled: ${S3_DUAL_STACK:true}
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:}
+  compression:
+    enabled: ${SERVER_COMPRESSION_ENABLED:true}
+  http2:
+    enabled: ${SERVER_HTTP2_ENABLED:true}
+    
+# Management and Monitoring
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS:health,info,metrics,prometheus}
+      base-path: ${MANAGEMENT_BASE_PATH:/actuator}
+  endpoint:
+    health:
+      show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
+      show-components: ${HEALTH_SHOW_COMPONENTS:when-authorized}
+    metrics:
+      enabled: ${METRICS_ENABLED:true}
+    prometheus:
+      enabled: ${PROMETHEUS_ENABLED:true}
+  health:
+    db:
+      enabled: ${HEALTH_DB_ENABLED:true}
+    defaults:
+      enabled: ${HEALTH_DEFAULTS_ENABLED:true}
+```
+
+### 🔧 Updated S3Service Implementation for K8s
+
+Your `AwsS3Service` should work with IAM roles instead of hardcoded credentials:
+
+```java
+package com.yourorg.yourapp.service;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.core.sync.RequestBody;
+
+@Service
+@Profile({"preprod", "prod"})  // Real AWS S3 for K8s environments
+public class AwsS3Service implements S3Service {
+    private final S3Client s3Client;
+    private final String bucketName;
+    
+    public AwsS3Service(@Value("${aws.s3.bucket-name}") String bucketName,
+                       @Value("${aws.s3.region}") String region,
+                       @Value("${aws.s3.use-iam-role:true}") boolean useIamRole) {
+        this.bucketName = bucketName;
+        
+        S3Client.Builder builder = S3Client.builder().region(Region.of(region));
+        
+        if (useIamRole) {
+            // Use DefaultCredentialsProvider for IAM roles (K8s IRSA)
+            builder.credentialsProvider(DefaultCredentialsProvider.create());
+        }
+        
+        this.s3Client = builder.build();
+    }
+    
+    @Override
+    public String uploadFile(String bucketName, String key, String content) {
+        PutObjectRequest putRequest = PutObjectRequest.builder()
+                .bucket(this.bucketName)  // Use BOM-provisioned bucket
+                .key(key)
+                .build();
+        
+        PutObjectResponse response = s3Client.putObject(putRequest, 
+                RequestBody.fromString(content));
+        return response.eTag();
+    }
+    
+    @Override
+    public String downloadFile(String bucketName, String key) {
+        GetObjectRequest getRequest = GetObjectRequest.builder()
+                .bucket(this.bucketName)
+                .key(key)
+                .build();
+        
+        return s3Client.getObjectAsBytes(getRequest).asUtf8String();
+    }
+    
+    @Override
+    public boolean deleteFile(String bucketName, String key) {
+        try {
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(this.bucketName)
+                    .key(key)
+                    .build();
+            
+            s3Client.deleteObject(deleteRequest);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}
+```
+
+### 📋 Helm Values Alignment Checklist
+
+Ensure your Helm `values.yaml` or environment-specific values align with your app configuration:
+
+#### Expected Helm Configuration
+```yaml
+# Your Helm chart values.yaml or values-preprod.yaml
+app:
+  name: hellojava06
+  
+# S3 Configuration (should match your BOM)
+aws:
+  s3:
+    bucketName: "your-org-hellojava06-preprod-bucket"  # From BOM
+    region: "us-east-1"
+    useIamRole: true
+    
+# Service Account for IRSA
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789:role/hellojava06-s3-access-role"
+
+# ConfigMap for application properties
+configMap:
+  S3_BUCKET_NAME: "your-org-hellojava06-preprod-bucket"
+  AWS_REGION: "us-east-1"
+  AWS_USE_IAM_ROLE: "true"
+```
+
+### 🎯 Deployment Validation Steps
+
+1. **Verify BOM S3 Bucket Exists**:
+   ```bash
+   kubectl get configmap -n your-namespace | grep s3
+   kubectl describe configmap your-app-config -n your-namespace
+   ```
+
+2. **Check Service Account IRSA Setup**:
+   ```bash
+   kubectl get serviceaccount your-app-sa -o yaml
+   # Should see: eks.amazonaws.com/role-arn annotation
+   ```
+
+3. **Test S3 Access from Pod**:
+   ```bash
+   kubectl exec -it your-pod -- aws s3 ls s3://your-bucket-name/
+   ```
+
+4. **Validate Environment Variables**:
+   ```bash
+   kubectl exec -it your-pod -- env | grep S3_BUCKET_NAME
+   ```
+
+### 🚨 Common K8s/S3 Integration Issues
+
+1. **Missing IRSA Setup**: Service account not annotated with IAM role
+2. **Bucket Name Mismatch**: App config doesn't match BOM-provisioned bucket
+3. **Cross-Account Access**: IAM role lacks permissions for S3 bucket
+4. **Region Mismatch**: App region doesn't match bucket region
+
+### 🔍 Troubleshooting Commands
+
+```bash
+# Check if S3 bucket is accessible
+kubectl exec -it your-pod -- aws s3api head-bucket --bucket your-bucket-name
+
+# Verify IAM role assumption
+kubectl exec -it your-pod -- aws sts get-caller-identity
+
+# Test S3 operations
+kubectl exec -it your-pod -- aws s3 cp /tmp/test.txt s3://your-bucket-name/test.txt
+```
+
+This integration ensures your Spring Boot app seamlessly works with your org's established Kubernetes/Helm/BOM infrastructure for S3 access! 🚢

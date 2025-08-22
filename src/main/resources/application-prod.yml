@@ -37,21 +37,27 @@ spring:
     validate-on-migrate: ${FLYWAY_VALIDATE_ON_MIGRATE:true}
     locations: ${FLYWAY_LOCATIONS:classpath:db/migration}
     
-# AWS S3 Configuration - Enterprise ready
+# AWS S3 Configuration - Production K8s
 aws:
   s3:
-    bucket-name: ${S3_BUCKET_NAME}
+    # BOM/Helm provides these via secure mechanisms
+    bucket-name: ${S3_BUCKET_NAME}  # From your BOM
     region: ${AWS_REGION:us-east-1}
-    # No hardcoded credentials - use IAM roles or external credential providers
-    access-key: ${AWS_ACCESS_KEY_ID:}
-    secret-key: ${AWS_SECRET_ACCESS_KEY:}
-    endpoint-url: ${AWS_S3_ENDPOINT_URL:}
+    
+    # Production IAM setup (no access keys in config)
+    use-iam-role: true
+    role-arn: ${AWS_ROLE_ARN:}  # Service account annotation
+    role-session-name: ${AWS_ROLE_SESSION_NAME:hellojava06-prod}
     
     # Enterprise S3 settings
     connection-timeout: ${S3_CONNECTION_TIMEOUT:10000}
     socket-timeout: ${S3_SOCKET_TIMEOUT:50000}
     max-connections: ${S3_MAX_CONNECTIONS:50}
     max-error-retry: ${S3_MAX_RETRY:3}
+    
+    # Additional production settings
+    accelerate-mode-enabled: ${S3_ACCELERATE_MODE:false}
+    dual-stack-enabled: ${S3_DUAL_STACK:true}
 
 # Server Configuration
 server:
