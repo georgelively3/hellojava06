@@ -43,8 +43,8 @@ dependencies {
     // Swagger/OpenAPI for API documentation
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
     
-    // WireMock for service virtualization
-    testImplementation 'com.github.tomakehurst:wiremock-jre8-standalone:2.35.1'
+    // WireMock for service virtualization (Spring Boot 3 compatible)
+    testImplementation 'org.wiremock:wiremock-standalone:3.3.1'
     
     // Development tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -54,6 +54,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:junit-jupiter'
+    
+    // REST Assured for API testing
+    testImplementation 'io.rest-assured:rest-assured:5.3.2'
+    testImplementation 'io.rest-assured:json-path:5.3.2'
+    testImplementation 'io.rest-assured:xml-path:5.3.2'
     
     // Karate for API testing
     testImplementation 'com.intuit.karate:karate-junit5:1.4.1'
@@ -99,197 +104,23 @@ jacocoTestCoverageVerification {
 
 check.dependsOn jacocoTestCoverageVerification
 
-// Integration tests using Karate CLI (aligned with org's intTest pattern)
-task integrationTest() {
-    description = 'Run integration tests using Karate CLI with WireMock service virtualization'
+// Integration tests that require Docker or external services
+task integrationTest(type: Test) {
+    description = 'Run integration tests that require Docker or external services'
     group = 'verification'
-    dependsOn assemble, testClasses
+    useJUnitPlatform()
     
-    doFirst {
-        def karateOutputDir = 'build/karate-reports'
-        project.ext.karateOutputDir = karateOutputDir
-        
-        // Environment configuration (following org pattern)
-        def userHost = System.getenv('USERHOST') ?: 'localhost'
-        def baseUrl = System.getenv("BASE_URL") ?: "http://${userHost}:8080"
-        def wireMockPort = System.getenv("WIREMOCK_PORT") ?: "9999"
-        
-        // Start WireMock server for service virtualization
-        println "Starting WireMock server on port ${wireMockPort} for service virtualization..."
-        
-        javaexec {
-            main = 'com.intuit.karate.cli.Main'
-            classpath = sourceSets.test.runtimeClasspath
-            args = [
-                'classpath:com/lithespeed/hellojava06/karate', 
-                '-t', '@integration',  // Run tests tagged with @integration
-                '-o', karateOutputDir,
-                '--threads', '1'  // Single thread for WireMock compatibility
-            ]
-            systemProperties = [
-                'baseUrl': baseUrl,
-                'wireMock.port': wireMockPort,
-                'spring.profiles.active': 'integration',
-                'file.encoding': 'UTF-8'
-            ]
-            jvmArgs = [
-                '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
-                '--add-opens', 'java.base/java.util=ALL-UNNAMED'
-            ]
-        }
-    }
+    include '**/karate/**'
+    include '**/integration/**'
+    
+    jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+    jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+    systemProperty 'file.encoding', 'UTF-8'
+    systemProperty 'spring.profiles.active', 'test'
     
     shouldRunAfter test
     finalizedBy jacocoTestReport
 }
-
-// WireMock Setup Task (similar to your mountebankSetup)
-task wireMockSetup() {
-    description = 'Start WireMock server for service virtualization'
-    group = 'verification'
-    
-    doFirst {
-        def wireMockPort = System.getenv('WIREMOCK_PORT') ?: '9999'
-        def wireMockDir = 'src/test/resources/wiremock'
-        
-        println "Starting WireMock server on port ${wireMockPort}"
-        println "WireMock mappings directory: ${wireMockDir}"
-        
-        // Start WireMock as background process
-        ProcessBuilder pb = new ProcessBuilder([
-            'java', '-jar', 
-            configurations.testRuntimeClasspath.find { it.name.contains('wiremock') }.absolutePath,
-            '--port', wireMockPort,
-            '--root-dir', wireMockDir,
-            '--verbose'
-        ])
-        pb.directory(project.projectDir)
-        pb.redirectErrorStream(true)
-        
-        def logFile = new File(project.buildDir, 'wiremock.log')
-        logFile.parentFile.mkdirs()
-        pb.redirectOutput(logFile)
-        
-        def process = pb.start()
-        
-        // Store process info for cleanup
-        project.ext.wireMockProcess = process
-        project.ext.wireMockPort = wireMockPort
-        
-        // Wait for WireMock to start
-        sleep(2000)
-        println "WireMock server started on port ${wireMockPort}"
-    }
-}
-
-// WireMock Cleanup Task
-task wireMockTeardown() {
-    description = 'Stop WireMock server'
-    group = 'verification'
-    
-    doFirst {
-        if (project.hasProperty('wireMockProcess')) {
-            println "Stopping WireMock server..."
-            project.wireMockProcess.destroy()
-            sleep(1000)
-            println "WireMock server stopped"
-        }
-    }
-}
-
-// Your org's proven intTest pattern - enhanced with service virtualization
-task intTest() {
-    description = 'Integration tests using org CLI pattern with service virtualization'
-    group = 'verification'
-    dependsOn assemble, testClasses, wireMockSetup
-    finalizedBy wireMockTeardown
-    
-    doFirst {
-        def karateOutputDir = 'build/inttest-reports'
-        project.ext.karateOutputDir = karateOutputDir
-        
-        // Environment detection - same pattern as your Mountebank approach
-        def environment = System.getenv('TEST_ENVIRONMENT') ?: 'int'
-        def userHost = System.getenv('USERHOST') ?: 'localhost'
-        def baseUrl = System.getenv("SOME_URL") ?: "http://${userHost}:8080"
-        
-        // Service virtualization configuration (like your Mountebank setup)
-        def wireMockPort = project.hasProperty('wireMockPort') ? project.wireMockPort : '9999'
-        def dependentServiceUrl = "http://localhost:${wireMockPort}"
-        
-        println "Running intTest in environment: ${environment}"
-        println "Application URL: ${baseUrl}"
-        println "Service virtualization URL: ${dependentServiceUrl}"
-        
-        javaexec {
-            main = 'com.intuit.karate.cli.Main'
-            classpath = sourceSets.test.runtimeClasspath
-            args = [
-                'classpath:com/lithespeed/hellojava06/karate',
-                '-t', '@karate',
-                '-o', karateOutputDir,
-                '--threads', '1'
-            ]
-            systemProperties = [
-                'baseUrl': baseUrl,
-                'karate.env': environment,
-                'wiremock.url': dependentServiceUrl,
-                'external.service.url': dependentServiceUrl,  // Point to WireMock
-                'karate.server.port': baseUrl.split(':')[2] ?: '8080'
-            ]
-            jvmArgs = [
-                '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
-                '--add-opens', 'java.base/java.util=ALL-UNNAMED'
-            ]
-        }
-    }
-}
-
-// PREPROD tests - identical Karate files, different configuration
-task preprodTest() {
-    description = 'Integration tests for PREPROD with real dependencies'
-    group = 'verification'
-    dependsOn assemble, testClasses
-    // Note: No wireMockSetup dependency - uses real services
-    
-    doFirst {
-        def karateOutputDir = 'build/preprodtest-reports'
-        project.ext.karateOutputDir = karateOutputDir
-        
-        def environment = 'preprod'
-        def userHost = System.getenv('USERHOST') ?: System.getenv('PREPROD_HOST') ?: 'preprod.yourorg.com'
-        def baseUrl = System.getenv("SOME_URL") ?: "https://${userHost}"
-        
-        // Real service URLs (no service virtualization)
-        def realServiceUrl = System.getenv('EXTERNAL_SERVICE_URL') ?: 'https://api.external-service.com'
-        
-        println "Running preprodTest in environment: ${environment}"
-        println "Application URL: ${baseUrl}"
-        println "Real service URL: ${realServiceUrl}"
-        
-        javaexec {
-            main = 'com.intuit.karate.cli.Main'
-            classpath = sourceSets.test.runtimeClasspath
-            args = [
-                'classpath:com/lithespeed/hellojava06/karate',
-                '-t', '@karate',
-                '-o', karateOutputDir,
-                '--threads', '1'
-            ]
-            systemProperties = [
-                'baseUrl': baseUrl,
-                'karate.env': environment,
-                'external.service.url': realServiceUrl,  // Point to real service
-                'karate.server.port': baseUrl.split(':')[2] ?: '443'
-            ]
-            jvmArgs = [
-                '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
-                '--add-opens', 'java.base/java.util=ALL-UNNAMED'
-            ]
-        }
-    }
-}
-
 
 // Unit tests only (no Docker required)
 task unitTest(type: Test) {
@@ -308,72 +139,44 @@ task unitTest(type: Test) {
     systemProperty 'file.encoding', 'UTF-8'
 }
 
-// S3-specific tests (now handled by Karate API tests)
-task s3Test(type: Test) {
-    description = 'Run S3-specific tests via Karate API testing'
+// Integration tests for INT environment (includes S3 API tests with service virtualization)
+task intTest(type: Test) {
+    description = 'Integration tests using org CLI pattern with service virtualization'
     group = 'verification'
     useJUnitPlatform()
     
+    include '**/integration/**'
     include '**/karate/**'
     
     systemProperty 'spring.profiles.active', 'test'
-    
-    jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
-    jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
-    systemProperty 'file.encoding', 'UTF-8'
-}
-
-// DEV Integration tests with WireMock service virtualization  
-task devIntegrationTest(type: Test) {
-    description = 'Run integration tests with WireMock S3 service virtualization for DEV/INT environments'
-    group = 'verification'
-    useJUnitPlatform()
-    
-    include '**/karate/DevIntegrationTestRunner.class'
-    
-    systemProperty 'spring.profiles.active', 'fake-s3'
+    systemProperty 'karate.options', '--tags ~@ignore'
     
     jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
     jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
     systemProperty 'file.encoding', 'UTF-8'
     
     shouldRunAfter test
+    finalizedBy jacocoTestReport
 }
 
-// PREPROD Integration tests with real AWS S3
-task preprodIntegrationTest(type: Test) {
-    description = 'Run integration tests with real AWS S3 for PREPROD environment'
+// Integration tests for PREPROD environment (includes S3 tests with real AWS)
+task preprodTest(type: Test) {
+    description = 'Integration tests for PREPROD with real dependencies'
     group = 'verification'
     useJUnitPlatform()
     
-    include '**/karate/PreprodIntegrationTestRunner.class'
+    include '**/integration/**'
+    include '**/karate/**'
     
-    systemProperty 'spring.profiles.active', 'preprod'
-    systemProperty 'FLYWAY_ENABLED', 'false'  // Disable DB for API testing
+    systemProperty 'spring.profiles.active', 'aws-s3'  // Use real AWS S3 profile
+    systemProperty 'karate.options', '--tags ~@ignore'
     
     jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
     jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
     systemProperty 'file.encoding', 'UTF-8'
     
     shouldRunAfter test
-}
-
-// WireMock Integration tests with service virtualization
-task wireMockIntegrationTest(type: Test) {
-    description = 'Run integration tests with WireMock service virtualization for external dependencies'
-    group = 'verification'
-    useJUnitPlatform()
-    
-    include '**/karate/WireMockIntegrationTestRunner.class'
-    
-    systemProperty 'spring.profiles.active', 'fake-s3,wiremock'
-    systemProperty 'wiremock.port', '9999'
-    
-    jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
-    jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
-    systemProperty 'file.encoding', 'UTF-8'
-    
-    shouldRunAfter test
+    finalizedBy jacocoTestReport
 }
 
 wrapper {

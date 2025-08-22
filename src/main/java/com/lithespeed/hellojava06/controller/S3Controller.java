@@ -1,7 +1,11 @@
 package com.lithespeed.hellojava06.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.lithespeed.hellojava06.service.S3Service;
@@ -14,6 +18,8 @@ import java.util.Map;
 @RequestMapping("/s3")
 public class S3Controller {
 
+    private static final Logger logger = LoggerFactory.getLogger(S3Controller.class);
+
     private final S3Service s3Service;
 
     @Autowired
@@ -23,15 +29,27 @@ public class S3Controller {
 
     @PostMapping("/upload")
     @Operation(summary = "Upload a file")
-    public String uploadFile(@RequestParam String fileName) {
-        s3Service.uploadFile(fileName);
-        return "Uploaded: " + fileName;
+    public ResponseEntity<String> uploadFile(@RequestParam String fileName) {
+        try {
+            s3Service.uploadFile(fileName);
+            return ResponseEntity.ok("Uploaded: " + fileName);
+        } catch (Exception e) {
+            logger.error("Failed to upload file: {}", fileName, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to upload file: " + e.getMessage());
+        }
     }
 
     @GetMapping("/list")
     @Operation(summary = "List files")
-    public List<String> listFiles() {
-        return s3Service.listFiles();
+    public ResponseEntity<List<String>> listFiles() {
+        try {
+            List<String> files = s3Service.listFiles();
+            return ResponseEntity.ok(files);
+        } catch (Exception e) {
+            logger.error("Failed to list files", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @GetMapping("/health")

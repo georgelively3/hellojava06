@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Profile({ "preprod", "prod" })  // K8s environments only
+@Profile({ "preprod", "prod" }) // K8s environments only
 public class AwsS3Service implements S3Service {
 
     private final S3Client s3Client;
@@ -29,26 +29,26 @@ public class AwsS3Service implements S3Service {
 
     // Production constructor for K8s/BOM integration
     public AwsS3Service(@Value("${aws.s3.region}") String region,
-                       @Value("${aws.s3.bucket-name}") String bucketName,
-                       @Value("${aws.s3.use-iam-role:true}") boolean useIamRole,
-                       @Value("${aws.s3.connection-timeout:10000}") int connectionTimeout,
-                       @Value("${aws.s3.socket-timeout:30000}") int socketTimeout,
-                       @Value("${aws.s3.max-connections:25}") int maxConnections) {
+            @Value("${aws.s3.bucket-name}") String bucketName,
+            @Value("${aws.s3.use-iam-role:true}") boolean useIamRole,
+            @Value("${aws.s3.connection-timeout:10000}") int connectionTimeout,
+            @Value("${aws.s3.socket-timeout:30000}") int socketTimeout,
+            @Value("${aws.s3.max-connections:25}") int maxConnections) {
         this.bucketName = bucketName;
-        
+
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region));
-        
+
         if (useIamRole) {
             // Use DefaultCredentialsProvider for IAM roles (K8s IRSA)
             builder.credentialsProvider(DefaultCredentialsProvider.create());
         }
-        
+
         // Apply K8s-appropriate timeouts and connection settings
         builder.overrideConfiguration(config -> config
                 .apiCallTimeout(Duration.ofMillis(socketTimeout))
                 .apiCallAttemptTimeout(Duration.ofMillis(connectionTimeout)));
-        
+
         this.s3Client = builder.build();
     }
 
@@ -56,7 +56,7 @@ public class AwsS3Service implements S3Service {
     @Override
     public void uploadFile(String fileName) {
         PutObjectRequest putRequest = PutObjectRequest.builder()
-                .bucket(this.bucketName)  // Use BOM-provisioned bucket
+                .bucket(this.bucketName) // Use BOM-provisioned bucket
                 .key(fileName)
                 .build();
 
@@ -84,7 +84,7 @@ public class AwsS3Service implements S3Service {
                 .key(key)
                 .build();
 
-        PutObjectResponse response = s3Client.putObject(putRequest, 
+        PutObjectResponse response = s3Client.putObject(putRequest,
                 RequestBody.fromString(content));
         return response.eTag();
     }
