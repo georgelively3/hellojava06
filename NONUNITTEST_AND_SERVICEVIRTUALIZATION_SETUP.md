@@ -301,30 +301,17 @@ public class S3Controller {
 **karate-config.js** (in `src/test/resources/`)
 ```javascript
 function fn() {
-  var env = karate.env; // get system property 'karate.env'
-  karate.log('karate.env system property was:', env);
-  
-  if (!env) {
-    env = 'dev';
-  }
-  
-  // Get server port from system property (set by Spring Boot test)
-  var serverPort = karate.properties['karate.server.port'] || '8080';
-  var baseUrl = 'http://localhost:' + serverPort;
-  
-  var config = {
-    env: env,
-    baseUrl: baseUrl,
-    wireMockUrl: 'http://localhost:' + (karate.properties['wiremock.port'] || '9999')
-  };
-  
-  karate.log('karate config:', config);
-  karate.configure('connectTimeout', 5000);
-  karate.configure('readTimeout', 5000);
-  
-  return config;
+    var config = {};
+    config.baseUrl = karate.properties.baseUrl;
+    return config;
 }
 ```
+
+**✅ Why This Simple Approach Works:**
+- **Your `intTest` task** passes `baseUrl` as a system property
+- **JUnit5 approaches** set `karate.server.port` and feature files construct the URL
+- **No complex environment detection** needed - let Gradle/Spring handle it
+- **Matches your org's proven pattern** exactly
 
 ### Step 6: Create Directory Structure
 
