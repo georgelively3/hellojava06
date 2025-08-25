@@ -1,16 +1,19 @@
 package com.lithespeed.hellojava06.karate;
 
 import com.intuit.karate.junit5.Karate;
+import com.lithespeed.hellojava06.config.WireMockS3Config;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 
 /**
- * Preprod Test Runner - Uses real AWS S3 services
- * Requires proper AWS credentials and S3 bucket configuration
+ * Preprod Test Runner - Uses WireMock for S3 service virtualization
+ * This allows testing without real AWS credentials
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("preprod")
+@ActiveProfiles({ "preprod", "wiremock" })
+@ContextConfiguration(classes = { WireMockS3Config.class })
 public class PreprodIntegrationTestRunner {
 
     @LocalServerPort

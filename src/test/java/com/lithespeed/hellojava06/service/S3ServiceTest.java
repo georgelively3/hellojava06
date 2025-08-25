@@ -40,13 +40,13 @@ class S3ServiceTest {
         PutObjectResponse mockResponse = PutObjectResponse.builder()
                 .eTag("test-etag")
                 .build();
-        
+
         when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenReturn(mockResponse);
 
         // When & Then
         assertDoesNotThrow(() -> s3Service.uploadFile(fileName));
-        
+
         // Verify S3Client was called correctly
         verify(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
     }
@@ -58,14 +58,14 @@ class S3ServiceTest {
         S3Exception s3Exception = (S3Exception) S3Exception.builder()
                 .message("Access denied")
                 .build();
-        
+
         when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenThrow(s3Exception);
 
         // When & Then
-        RuntimeException exception = assertThrows(RuntimeException.class, 
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> s3Service.uploadFile(fileName));
-        
+
         assertTrue(exception.getMessage().contains("Failed to upload file"));
         assertTrue(exception.getCause() instanceof S3Exception);
     }
@@ -75,11 +75,11 @@ class S3ServiceTest {
         // Given
         S3Object obj1 = S3Object.builder().key("file1.txt").build();
         S3Object obj2 = S3Object.builder().key("file2.txt").build();
-        
+
         ListObjectsResponse mockResponse = ListObjectsResponse.builder()
                 .contents(Arrays.asList(obj1, obj2))
                 .build();
-        
+
         when(s3Client.listObjects(any(ListObjectsRequest.class)))
                 .thenReturn(mockResponse);
 
@@ -99,7 +99,7 @@ class S3ServiceTest {
         ListObjectsResponse mockResponse = ListObjectsResponse.builder()
                 .contents(Collections.emptyList())
                 .build();
-        
+
         when(s3Client.listObjects(any(ListObjectsRequest.class)))
                 .thenReturn(mockResponse);
 
@@ -117,14 +117,14 @@ class S3ServiceTest {
         S3Exception s3Exception = (S3Exception) S3Exception.builder()
                 .message("Bucket not found")
                 .build();
-        
+
         when(s3Client.listObjects(any(ListObjectsRequest.class)))
                 .thenThrow(s3Exception);
 
         // When & Then
-        RuntimeException exception = assertThrows(RuntimeException.class, 
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> s3Service.listFiles());
-        
+
         assertTrue(exception.getMessage().contains("Failed to list files"));
         assertTrue(exception.getCause() instanceof S3Exception);
     }
@@ -135,11 +135,11 @@ class S3ServiceTest {
         String key = "test-key";
         String content = "test content";
         String expectedETag = "test-etag";
-        
+
         PutObjectResponse mockResponse = PutObjectResponse.builder()
                 .eTag(expectedETag)
                 .build();
-        
+
         when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenReturn(mockResponse);
 
@@ -157,10 +157,10 @@ class S3ServiceTest {
         String key = "test-key";
         String expectedContent = "test content";
         byte[] contentBytes = expectedContent.getBytes(StandardCharsets.UTF_8);
-        
+
         ResponseBytes<GetObjectResponse> responseBytes = ResponseBytes.fromByteArray(
                 GetObjectResponse.builder().build(), contentBytes);
-        
+
         when(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
                 .thenReturn(responseBytes);
 
@@ -177,7 +177,7 @@ class S3ServiceTest {
         // Given
         String key = "test-key";
         DeleteObjectResponse mockResponse = DeleteObjectResponse.builder().build();
-        
+
         when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
                 .thenReturn(mockResponse);
 
@@ -196,7 +196,7 @@ class S3ServiceTest {
         S3Exception s3Exception = (S3Exception) S3Exception.builder()
                 .message("Object not found")
                 .build();
-        
+
         when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
                 .thenThrow(s3Exception);
 

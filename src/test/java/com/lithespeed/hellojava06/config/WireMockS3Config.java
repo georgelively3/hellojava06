@@ -1,6 +1,7 @@
 package com.lithespeed.hellojava06.config;
 
 import com.lithespeed.hellojava06.service.S3Service;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -26,7 +27,7 @@ public class WireMockS3Config {
      * Creates an S3Client configured to point to WireMock server
      * instead of real AWS S3.
      */
-    @Bean
+    @Bean("testS3Client")
     @Primary
     public S3Client wireMockS3Client() {
         return S3Client.builder()
@@ -41,9 +42,9 @@ public class WireMockS3Config {
     /**
      * Creates S3Service using the WireMock S3Client
      */
-    @Bean
+    @Bean("testS3Service")
     @Primary
-    public S3Service wireMockS3Service(S3Client wireMockS3Client) {
+    public S3Service wireMockS3Service(@Qualifier("testS3Client") S3Client wireMockS3Client) {
         return new S3Service(wireMockS3Client, "test-bucket");
     }
 }

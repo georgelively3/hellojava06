@@ -3,7 +3,7 @@ package com.lithespeed.hellojava06.integration;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.lithespeed.hellojava06.config.S3ServiceVirtualizationConfig;
+import com.lithespeed.hellojava06.config.WireMockS3Config;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -16,16 +16,16 @@ import static io.restassured.RestAssured.given;
 /**
  * Integration test using WireMock to virtualize S3 service behavior.
  * This demonstrates service virtualization - testing our S3Controller
- * with AwsS3Service against mocked S3 responses without needing real AWS
+ * with S3Service against mocked S3 responses without needing real AWS
  * infrastructure.
  * 
- * This test uses the 'service-virtualization' profile which configures
- * AwsS3Service to use a mocked S3Client pointing to WireMock instead of real
+ * This test uses the 'wiremock' profile which configures
+ * S3Service to use a mocked S3Client pointing to WireMock instead of real
  * AWS.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({ "aws-s3", "service-virtualization" }) // Use real AwsS3Service but with mocked S3Client
-@ContextConfiguration(classes = { S3ServiceVirtualizationConfig.class })
+@ActiveProfiles({ "wiremock" }) // Use S3Service with WireMock S3Client
+@ContextConfiguration(classes = { WireMockS3Config.class })
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class S3ServiceVirtualizationTest {
 
@@ -38,12 +38,12 @@ class S3ServiceVirtualizationTest {
     static void setupWireMock() {
         // Start WireMock server to mock S3 API
         wireMockServer = new WireMockServer(WireMockConfiguration.options()
-                .port(9999)
+                .port(8089)
                 .usingFilesUnderClasspath("wiremock"));
         wireMockServer.start();
-        WireMock.configureFor("localhost", 9999);
+        WireMock.configureFor("localhost", 8089);
 
-        System.out.println("WireMock S3 virtualization server started on port 9999");
+        System.out.println("WireMock S3 virtualization server started on port 8089");
     }
 
     @AfterAll

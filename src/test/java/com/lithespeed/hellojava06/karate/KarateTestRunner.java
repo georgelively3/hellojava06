@@ -23,7 +23,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
  * - Dialog API tests (from existing DialogTest)
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"wiremock", "test"})
+@ActiveProfiles({ "wiremock", "test" })
 @Import(WireMockS3Config.class)
 public class KarateTestRunner {
 
