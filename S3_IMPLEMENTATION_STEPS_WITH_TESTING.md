@@ -47,7 +47,7 @@ Create `src/main/java/com/lithespeed/hellojava06/service/S3Service.java`:
 
 ```java
 @Service
-@Profile("!wiremock") // Exclude when using test profiles
+@Profile("!localstack") // Exclude when using test profiles
 public class S3Service {
 
     private final S3Client s3Client;
