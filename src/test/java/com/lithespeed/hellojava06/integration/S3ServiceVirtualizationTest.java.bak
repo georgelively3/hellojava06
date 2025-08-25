@@ -1,5 +1,29 @@
 package com.lithespeed.hellojava06.integration;
 
+import com.lithespeed.hellojava06.extension.S3WireMockExtension;
+import com.lithespeed.hellojava06.config.WireMockS3Config;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static io.restassured.RestAssured.given;ithespeed.hellojava06.integration;
+
+import com.lithespeed.hellojava06.extension.S3WireMockExtension;
+import com.lithespeed.hellojava06.config.WireMockS3Config;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static io.restassured.RestAssured.given;thespeed.hellojava06.integration;
+
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -38,12 +62,12 @@ class S3ServiceVirtualizationTest {
     static void setupWireMock() {
         // Start WireMock server to mock S3 API
         wireMockServer = new WireMockServer(WireMockConfiguration.options()
-                .port(8089)
+                .port(9090)
                 .usingFilesUnderClasspath("wiremock"));
         wireMockServer.start();
-        WireMock.configureFor("localhost", 8089);
+        WireMock.configureFor("localhost", 9090);
 
-        System.out.println("WireMock S3 virtualization server started on port 8089");
+        System.out.println("WireMock S3 virtualization server started on port 9090");
     }
 
     @AfterAll

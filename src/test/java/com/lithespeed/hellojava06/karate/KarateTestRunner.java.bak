@@ -1,17 +1,13 @@
 package com.lithespeed.hellojava06.karate;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.intuit.karate.junit5.Karate;
+import com.lithespeed.hellojava06.extension.S3WireMockExtension;
 import com.lithespeed.hellojava06.config.WireMockS3Config;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
 /**
  * Karate Test Runner with WireMock S3 service virtualization
@@ -22,6 +18,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
  * - S3 API tests (with WireMock S3 stubs)
  * - Dialog API tests (from existing DialogTest)
  */
+@ExtendWith(S3WireMockExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({ "wiremock", "test" })
 @Import(WireMockS3Config.class)
@@ -32,7 +29,7 @@ public class KarateTestRunner {
 
     @RegisterExtension
     static WireMockExtension wireMock = WireMockExtension.newInstance()
-            .options(wireMockConfig().port(8089))
+            .options(wireMockConfig().port(9090))
             .build();
 
     @BeforeAll

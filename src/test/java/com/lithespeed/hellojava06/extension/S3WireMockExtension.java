@@ -16,7 +16,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 public class S3WireMockExtension implements BeforeAllCallback, AfterAllCallback {
 
     private static WireMockServer wireMockServer;
-    private static final int WIREMOCK_PORT = 8089;
+    private static final int WIREMOCK_PORT = 9090;
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
@@ -45,11 +45,13 @@ public class S3WireMockExtension implements BeforeAllCallback, AfterAllCallback 
             wireMockServer = new WireMockServer(WireMockConfiguration.options()
                     .port(WIREMOCK_PORT)
                     .usingFilesUnderClasspath("wiremock"));
-            
+
             wireMockServer.start();
             WireMock.configureFor("localhost", WIREMOCK_PORT);
-            
+
             System.out.println("WireMock S3 server started on port " + WIREMOCK_PORT);
+            System.out.println("WireMock server is running: " + wireMockServer.isRunning());
+            System.out.println("WireMock base URL: " + wireMockServer.baseUrl());
         } catch (Exception e) {
             System.err.println("Failed to start WireMock server: " + e.getMessage());
             throw new RuntimeException("Could not start WireMock server", e);
@@ -60,37 +62,50 @@ public class S3WireMockExtension implements BeforeAllCallback, AfterAllCallback 
         try {
             // Reset all previous stubs
             wireMockServer.resetAll();
-            
-            // Mock S3 ListObjects API response for empty bucket
-            wireMockServer.stubFor(get(urlMatching("/test-bucket.*"))
-                    .willReturn(aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/xml")
-                            .withBody("""
-                                    <?xml version="1.0" encoding="UTF-8"?>
-                                    <ListObjectsV2Result xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                                        <Name>test-bucket</Name>
-                                        <Prefix></Prefix>
-                                        <KeyCount>0</KeyCount>
-                                        <MaxKeys>1000</MaxKeys>
-                                        <IsTruncated>false</IsTruncated>
-                                    </ListObjectsV2Result>
-                                    """)));
 
-            // Mock S3 PutObject API response
-            wireMockServer.stubFor(put(urlMatching("/test-bucket/.*"))
+            // Mock S3 ListObjects API response for bucket with test files  
+            // Use a very broad pattern to catch all requests and log them
+            wireMockServer.stubFor(get(urlMatching(".*"))
                     .willReturn(aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/xml")
-                            .withHeader("ETag", "\"d41d8cd98f00b204e9800998ecf8427e\"")
                             .withHeader("x-amz-request-id", "mock-request-id")
                             .withHeader("x-amz-id-2", "mock-extended-request-id")
                             .withBody("""
                                     <?xml version="1.0" encoding="UTF-8"?>
-                                    <PutObjectResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-                                        <ETag>"d41d8cd98f00b204e9800998ecf8427e"</ETag>
-                                    </PutObjectResult>
+                                    <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+                                        <Name>test-bucket</Name>
+                                        <Prefix></Prefix>
+                                        <Marker></Marker>
+                                        <MaxKeys>1000</MaxKeys>
+                                        <IsTruncated>false</IsTruncated>
+                                        <Contents>
+                                            <Key>list-test-file.txt</Key>
+                                            <LastModified>2023-01-01T00:00:00.000Z</LastModified>
+                                            <ETag>"d41d8cd98f00b204e9800998ecf8427e"</ETag>
+                                            <Size>13</Size>
+                                            <StorageClass>STANDARD</StorageClass>
+                                        </Contents>
+                                        <Contents>
+                                            <Key>test-file.txt</Key>
+                                            <LastModified>2023-01-01T00:00:00.000Z</LastModified>
+                                            <ETag>"85cc3110c5b74da17abb46e7dbe6b5f5"</ETag>
+                                            <Size>13</Size>
+                                            <StorageClass>STANDARD</StorageClass>
+                                        </Contents>
+                                    </ListBucketResult>
                                     """)));
+
+            // Mock S3 PutObject API response with correct MD5 hash for "dummy content"
+            // MD5 hash of "dummy content" is: 85cc3110c5b74da17abb46e7dbe6b5f5  
+            wireMockServer.stubFor(put(urlMatching(".*"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/xml")
+                            .withHeader("ETag", "\"85cc3110c5b74da17abb46e7dbe6b5f5\"")
+                            .withHeader("x-amz-request-id", "mock-request-id")
+                            .withHeader("x-amz-id-2", "mock-extended-request-id")
+                            .withBody(""))); // Empty body for PutObject response
 
             // Mock S3 HeadBucket for bucket existence checks
             wireMockServer.stubFor(head(urlEqualTo("/test-bucket"))

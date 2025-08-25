@@ -10,6 +10,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 
 import java.net.URI;
 
@@ -30,21 +31,26 @@ public class WireMockS3Config {
     @Bean("testS3Client")
     @Primary
     public S3Client wireMockS3Client() {
+        System.out.println("Creating WireMock S3Client pointing to localhost:9090");
         return S3Client.builder()
                 .region(Region.US_EAST_1)
-                .endpointOverride(URI.create("http://localhost:8089"))
+                .endpointOverride(URI.create("http://localhost:9090"))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create("test-access-key", "test-secret-key")))
                 .forcePathStyle(true) // Required for S3-compatible services like WireMock
+                .serviceConfiguration(S3Configuration.builder()
+                        .checksumValidationEnabled(false)
+                        .build())
                 .build();
     }
 
     /**
      * Creates S3Service using the WireMock S3Client
      */
-    @Bean("testS3Service")
+    @Bean("testS3Service") 
     @Primary
     public S3Service wireMockS3Service(@Qualifier("testS3Client") S3Client wireMockS3Client) {
+        System.out.println("Creating WireMock S3Service with test-bucket");
         return new S3Service(wireMockS3Client, "test-bucket");
     }
 }
