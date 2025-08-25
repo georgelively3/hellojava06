@@ -3,7 +3,7 @@ spring:
   application:
     name: hellojava06
   profiles:
-    active: fake-s3
+    active: default
 
   # Database Configuration
   datasource:
@@ -38,7 +38,7 @@ spring:
     activate:
       on-profile: test
   profiles:
-    active: fake-s3
+    active: default
     
 # AWS S3 Configuration
 aws:

@@ -1,26 +1,40 @@
 package com.lithespeed.hellojava06.karate;
 
 import com.intuit.karate.junit5.Karate;
-import com.lithespeed.hellojava06.extension.S3WireMockExtension;
-import com.lithespeed.hellojava06.config.WireMockS3Config;
-import org.junit.jupiter.api.extension.ExtendWith;
+import com.lithespeed.hellojava06.config.LocalStackS3Config;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 /**
- * S3-focused Karate test runner using real S3Service with WireMock
+ * S3-focused Karate test runner using real S3Service with LocalStack
  * for comprehensive API testing
  */
-@ExtendWith(S3WireMockExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("wiremock")
-@ContextConfiguration(classes = { WireMockS3Config.class })
+@Testcontainers
+@ActiveProfiles("localstack")
+@Import(LocalStackS3Config.class)
 public class S3KarateTestRunner {
+
+    @Container
+    static LocalStackContainer localStack = new LocalStackContainer(
+            DockerImageName.parse("localstack/localstack:3.0"))
+            .withServices(LocalStackContainer.Service.S3);
 
     @LocalServerPort
     private int serverPort;
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        LocalStackS3Config.configureProperties(registry, localStack);
+    }
 
     @Karate.Test
     Karate testS3Api() {

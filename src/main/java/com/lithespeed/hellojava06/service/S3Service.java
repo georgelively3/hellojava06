@@ -16,13 +16,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("!wiremock") // Exclude this bean when wiremock profile is active
+@Profile("!localstack") // Exclude this bean when localstack profile is active
 public class S3Service {
 
     private final S3Client s3Client;
     private final String bucketName;
 
-    // For unit testing with mock S3Client
+    // For testing with injected S3Client (e.g., LocalStack)
     public S3Service(S3Client s3Client, String bucketName) {
         this.s3Client = s3Client;
         this.bucketName = bucketName;

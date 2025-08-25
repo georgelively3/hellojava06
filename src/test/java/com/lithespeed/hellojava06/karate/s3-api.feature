@@ -1,4 +1,4 @@
-Feature: S3 API Testing with Fake S3 Service
+Feature: S3 API Testing with LocalStack
 
 Background:
   * url 'http://localhost:' + karate.properties['karate.server.port']

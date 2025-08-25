@@ -6,7 +6,7 @@ Background:
   * header Accept = 'application/json'
 
 @integration @karate
-Scenario: Test external health check (INT: WireMock, PREPROD: Real Service)
+Scenario: Test external health check (INT: LocalStack, PREPROD: Real Service)
   Given url externalServiceUrl
   And path '/external/health'
   When method get
@@ -43,7 +43,7 @@ Scenario: Integration test combining app and external services
   And match response == 'Uploaded: integration-test-file.txt'
   
   # Then test external notification 
-  # INT: hits WireMock stub, PREPROD: hits real external service
+  # INT: hits LocalStack stub, PREPROD: hits real external service
   Given url externalServiceUrl
   And path '/external/api/notify'
   And request { message: 'File uploaded successfully', file: 'integration-test-file.txt' }
