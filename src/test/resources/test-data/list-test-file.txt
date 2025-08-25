@@ -1,0 +1,9 @@
+S3 List Test File
+================
+
+This file tests S3 listing operations.
+Filename: list-test-file.txt
+Size: Small
+Purpose: Verify list/search functionality
+
+Content for testing file metadata and listing.

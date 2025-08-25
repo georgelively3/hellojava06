@@ -1,0 +1,9 @@
+Special Characters Test File
+============================
+
+UTF-8 Characters: àáâãäåæçèéêëìíîï
+Symbols: !@#$%^&*()_+-={}[]|"':;.<>?/~`
+Numbers: 0123456789
+Mixed: Test123!@# àáâã
+
+This tests file handling with various character encodings.
