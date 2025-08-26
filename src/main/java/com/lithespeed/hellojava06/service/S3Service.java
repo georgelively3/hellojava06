@@ -4,13 +4,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,25 +31,40 @@ public class S3Service {
         this.bucketName = bucketName;
     }
 
-    // Production constructor for K8s/BOM integration
+    // Production constructor for K8s/BOM integration + LocalStack support
     @Autowired
     public S3Service(@Value("${aws.s3.region}") String region,
             @Value("${aws.s3.bucket-name}") String bucketName,
             @Value("${aws.s3.use-iam-role:true}") boolean useIamRole,
+            @Value("${aws.s3.endpoint-url:}") String endpointUrl, // ✅ ADD THIS
+            @Value("${aws.s3.access-key:}") String accessKey, // ✅ ADD THIS
+            @Value("${aws.s3.secret-key:}") String secretKey, // ✅ ADD THIS
             @Value("${aws.s3.connection-timeout:10000}") int connectionTimeout,
             @Value("${aws.s3.socket-timeout:30000}") int socketTimeout,
             @Value("${aws.s3.max-connections:25}") int maxConnections) {
+
         this.bucketName = bucketName;
 
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region));
 
+        // Configure credentials
         if (useIamRole) {
             // Use DefaultCredentialsProvider for IAM roles (K8s IRSA)
             builder.credentialsProvider(DefaultCredentialsProvider.create());
+        } else if (!accessKey.isEmpty() && !secretKey.isEmpty()) {
+            // Use static credentials for LocalStack/dev environments
+            builder.credentialsProvider(StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(accessKey, secretKey)));
         }
 
-        // Apply K8s-appropriate timeouts and connection settings
+        // Configure endpoint for LocalStack
+        if (!endpointUrl.isEmpty()) {
+            builder.endpointOverride(URI.create(endpointUrl));
+            builder.forcePathStyle(true); // Required for LocalStack
+        }
+
+        // Apply timeouts
         builder.overrideConfiguration(config -> config
                 .apiCallTimeout(Duration.ofMillis(socketTimeout))
                 .apiCallAttemptTimeout(Duration.ofMillis(connectionTimeout)));
