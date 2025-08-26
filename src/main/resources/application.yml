@@ -46,6 +46,41 @@ aws:
     access-key: ${AWS_ACCESS_KEY:}
     secret-key: ${AWS_SECRET_KEY:}
 
+---
+# Preprod profile configuration
+spring:
+  config:
+    activate:
+      on-profile: preprod
+  
+  # Database Configuration for preprod (usually PostgreSQL)
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/hellojava06_preprod}
+    driver-class-name: org.postgresql.Driver
+    username: ${DATABASE_USERNAME:hellojava06}
+    password: ${DATABASE_PASSWORD}
+    
+  h2:
+    console:
+      enabled: false # Disable H2 console in preprod
+      
+  jpa:
+    hibernate:
+      ddl-auto: validate # Use Flyway for schema management
+    show-sql: false # Reduce logging in preprod
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# AWS S3 Configuration for preprod
+aws:
+  s3:
+    bucket-name: ${LocalBucketName:pm3547b}  # Uses Helm value or defaults to BOM bucket
+    region: ${AWS_REGION:us-east-1}          # Should match your org's region
+    use-iam-role: true                       # Use Kubernetes IRSA/IAM roles
+    # No static credentials - rely on IAM roles in Kubernetes
+
 # Management endpoints
 management:
   endpoints:
@@ -63,3 +98,19 @@ logging:
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+---
+# Preprod-specific logging
+spring:
+  config:
+    activate:
+      on-profile: preprod
+
+logging:
+  level:
+    com.lithespeed: INFO                     # Less verbose for preprod
+    org.springframework.web: WARN            # Reduce Spring web logging
+    org.hibernate.SQL: WARN                  # Reduce database logging
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"  # Cleaner log format

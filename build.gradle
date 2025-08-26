@@ -176,15 +176,15 @@ task preprodTest(type: Test) {
     group = 'verification'
     useJUnitPlatform()
     
-    include '**/integration/**'
-    include '**/karate/**'
+    include '**/PreprodKarateTestRunner.class'
     
-    systemProperty 'spring.profiles.active', 'aws-s3'  // Use real AWS S3 profile
-    systemProperty 'karate.options', '--tags ~@ignore'
-    
-    jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
-    jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+    systemProperty 'spring.profiles.active', 'preprod'  // Use preprod profile
     systemProperty 'file.encoding', 'UTF-8'
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
     
     shouldRunAfter test
     finalizedBy jacocoTestReport
