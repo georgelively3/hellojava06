@@ -2,7 +2,6 @@ package com.lithespeed.hellojava06.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -19,7 +18,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("!localstack") // Exclude this bean when localstack profile is active
 public class S3Service {
 
     private final S3Client s3Client;
@@ -31,14 +29,14 @@ public class S3Service {
         this.bucketName = bucketName;
     }
 
-    // Production constructor for K8s/BOM integration + LocalStack support
+    // Production constructor for K8s/BOM integration with flexible endpoint support
     @Autowired
-    public S3Service(@Value("${aws.s3.region}") String region,
-            @Value("${aws.s3.bucket-name}") String bucketName,
+    public S3Service(@Value("${aws.s3.region:us-east-1}") String region,
+            @Value("${aws.s3.bucket-name:test-bucket}") String bucketName,
             @Value("${aws.s3.use-iam-role:true}") boolean useIamRole,
-            @Value("${aws.s3.endpoint-url:}") String endpointUrl, // ✅ ADD THIS
-            @Value("${aws.s3.access-key:}") String accessKey, // ✅ ADD THIS
-            @Value("${aws.s3.secret-key:}") String secretKey, // ✅ ADD THIS
+            @Value("${aws.s3.endpoint-url:}") String endpointUrl,
+            @Value("${aws.s3.access-key:}") String accessKey,
+            @Value("${aws.s3.secret-key:}") String secretKey,
             @Value("${aws.s3.connection-timeout:10000}") int connectionTimeout,
             @Value("${aws.s3.socket-timeout:30000}") int socketTimeout,
             @Value("${aws.s3.max-connections:25}") int maxConnections) {
@@ -53,15 +51,15 @@ public class S3Service {
             // Use DefaultCredentialsProvider for IAM roles (K8s IRSA)
             builder.credentialsProvider(DefaultCredentialsProvider.create());
         } else if (!accessKey.isEmpty() && !secretKey.isEmpty()) {
-            // Use static credentials for LocalStack/dev environments
+            // Use static credentials for dev environments
             builder.credentialsProvider(StaticCredentialsProvider.create(
                     AwsBasicCredentials.create(accessKey, secretKey)));
         }
 
-        // Configure endpoint for LocalStack
+        // Configure endpoint override if provided
         if (!endpointUrl.isEmpty()) {
             builder.endpointOverride(URI.create(endpointUrl));
-            builder.forcePathStyle(true); // Required for LocalStack
+            builder.forcePathStyle(true); // Required for non-AWS S3 endpoints
         }
 
         // Apply timeouts

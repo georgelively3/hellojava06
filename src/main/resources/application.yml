@@ -37,8 +37,6 @@ spring:
   config:
     activate:
       on-profile: test
-  profiles:
-    active: default
     
 # AWS S3 Configuration
 aws:
