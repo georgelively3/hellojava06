@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3 File Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-form {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .files-list {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .file-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .loading {
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>S3 File Upload Test</h1>
+    
+    <div class="upload-form">
+        <h2>Upload File to S3</h2>
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="fileInput">Select File:</label>
+                <input type="file" id="fileInput" name="file" required>
+            </div>
+            <div class="form-group">
+                <label for="customKey">Custom Key (optional):</label>
+                <input type="text" id="customKey" name="customKey" placeholder="e.g., documents/my-file.txt">
+            </div>
+            <button type="submit" id="uploadBtn">Upload File</button>
+        </form>
+        <div id="uploadResult"></div>
+    </div>
+
+    <div class="files-list">
+        <h2>Files in S3 Bucket</h2>
+        <button onclick="refreshFileList()" id="refreshBtn">Refresh List</button>
+        <div id="filesList">
+            <div class="loading">Click "Refresh List" to load files...</div>
+        </div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadResult = document.getElementById('uploadResult');
+        const filesList = document.getElementById('filesList');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        uploadForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            const customKey = document.getElementById('customKey');
+            
+            if (!fileInput.files[0]) {
+                showResult('Please select a file', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            if (customKey.value.trim()) {
+                formData.append('customKey', customKey.value.trim());
+            }
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            
+            try {
+                const response = await fetch('/s3/upload-file', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showResult(`File uploaded successfully!<br>
+                                <strong>Key:</strong> ${result.key}<br>
+                                <strong>Size:</strong> ${result.size} bytes<br>
+                                <strong>Content Type:</strong> ${result.contentType}<br>
+                                <strong>ETag:</strong> ${result.etag}`, 'success');
+                    
+                    // Reset form
+                    uploadForm.reset();
+                    
+                    // Refresh file list
+                    refreshFileList();
+                } else {
+                    showResult(`Upload failed: ${result.error || result.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Upload failed: ${error.message}`, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload File';
+            }
+        });
+
+        async function refreshFileList() {
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = 'Loading...';
+            filesList.innerHTML = '<div class="loading">Loading files...</div>';
+            
+            try {
+                const response = await fetch('/s3/list');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const files = await response.json();
+                
+                if (files.length === 0) {
+                    filesList.innerHTML = '<div class="loading">No files found in bucket.</div>';
+                } else {
+                    filesList.innerHTML = files.map(file => 
+                        `<div class="file-item">📄 ${file}</div>`
+                    ).join('');
+                }
+            } catch (error) {
+                filesList.innerHTML = `<div class="error">Failed to load files: ${error.message}</div>`;
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = 'Refresh List';
+            }
+        }
+
+        function showResult(message, type) {
+            uploadResult.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+
+        // Check health on page load
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch('/s3/health');
+                const health = await response.json();
+                
+                if (health.status === 'UP') {
+                    console.log('S3 service is healthy');
+                } else {
+                    console.warn('S3 service health check failed:', health);
+                }
+            } catch (error) {
+                console.error('Failed to check S3 health:', error);
+            }
+        });
+    </script>
+</body>
+</html>

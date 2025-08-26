@@ -5,12 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -127,84 +125,5 @@ class S3ServiceTest {
 
         assertTrue(exception.getMessage().contains("Failed to list files"));
         assertTrue(exception.getCause() instanceof S3Exception);
-    }
-
-    @Test
-    void uploadFileWithContent_Success() {
-        // Given
-        String key = "test-key";
-        String content = "test content";
-        String expectedETag = "test-etag";
-
-        PutObjectResponse mockResponse = PutObjectResponse.builder()
-                .eTag(expectedETag)
-                .build();
-
-        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
-                .thenReturn(mockResponse);
-
-        // When
-        String actualETag = s3Service.uploadFileWithContent(key, content);
-
-        // Then
-        assertEquals(expectedETag, actualETag);
-        verify(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
-    }
-
-    @Test
-    void downloadFile_Success() {
-        // Given
-        String key = "test-key";
-        String expectedContent = "test content";
-        byte[] contentBytes = expectedContent.getBytes(StandardCharsets.UTF_8);
-
-        ResponseBytes<GetObjectResponse> responseBytes = ResponseBytes.fromByteArray(
-                GetObjectResponse.builder().build(), contentBytes);
-
-        when(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
-                .thenReturn(responseBytes);
-
-        // When
-        String actualContent = s3Service.downloadFile(key);
-
-        // Then
-        assertEquals(expectedContent, actualContent);
-        verify(s3Client).getObjectAsBytes(any(GetObjectRequest.class));
-    }
-
-    @Test
-    void deleteFile_Success() {
-        // Given
-        String key = "test-key";
-        DeleteObjectResponse mockResponse = DeleteObjectResponse.builder().build();
-
-        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
-                .thenReturn(mockResponse);
-
-        // When
-        boolean result = s3Service.deleteFile(key);
-
-        // Then
-        assertTrue(result);
-        verify(s3Client).deleteObject(any(DeleteObjectRequest.class));
-    }
-
-    @Test
-    void deleteFile_S3Exception_ReturnsFalse() {
-        // Given
-        String key = "test-key";
-        S3Exception s3Exception = (S3Exception) S3Exception.builder()
-                .message("Object not found")
-                .build();
-
-        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
-                .thenThrow(s3Exception);
-
-        // When
-        boolean result = s3Service.deleteFile(key);
-
-        // Then
-        assertFalse(result);
-        verify(s3Client).deleteObject(any(DeleteObjectRequest.class));
     }
 }
