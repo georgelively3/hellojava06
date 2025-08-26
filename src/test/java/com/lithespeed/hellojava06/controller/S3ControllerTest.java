@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -43,20 +42,6 @@ class S3ControllerTest {
                 "text/plain", 
                 "This is test content for multipart upload".getBytes()
         );
-    }
-
-    @Test
-    void testUploadFile() throws Exception {
-        String fileName = "test.txt";
-        doNothing().when(s3Service).uploadFile(fileName);
-
-        mockMvc.perform(post("/s3/upload")
-                .param("fileName", fileName)
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Uploaded: " + fileName));
-
-        verify(s3Service, times(1)).uploadFile(fileName);
     }
 
     @Test
@@ -94,28 +79,9 @@ class S3ControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("File uploaded successfully"))
-                .andExpect(jsonPath("$.originalFileName").value("test-document.txt"))
+                .andExpect(jsonPath("$.fileName").value("test-document.txt"))
                 .andExpect(jsonPath("$.contentType").value("text/plain"))
                 .andExpect(jsonPath("$.size").value(41))
-                .andExpect(jsonPath("$.etag").value(expectedEtag))
-                .andExpect(jsonPath("$.key").value("test-document.txt"));
-    }
-
-    @Test
-    @DisplayName("Should upload multipart file with custom key")
-    void shouldUploadMultipartFileWithCustomKey() throws Exception {
-        // Given
-        String customKey = "documents/my-custom-file.txt";
-        String expectedEtag = "\"custom-etag-value\"";
-        when(s3Service.uploadFile(any(MockMultipartFile.class), eq(customKey))).thenReturn(expectedEtag);
-
-        // When & Then
-        mockMvc.perform(multipart("/s3/upload-file")
-                .file(testFile)
-                .param("customKey", customKey))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.key").value(customKey))
                 .andExpect(jsonPath("$.etag").value(expectedEtag));
     }
 

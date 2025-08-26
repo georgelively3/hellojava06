@@ -92,10 +92,6 @@
                 <label for="fileInput">Select File:</label>
                 <input type="file" id="fileInput" name="file" required>
             </div>
-            <div class="form-group">
-                <label for="customKey">Custom Key (optional):</label>
-                <input type="text" id="customKey" name="customKey" placeholder="e.g., documents/my-file.txt">
-            </div>
             <button type="submit" id="uploadBtn">Upload File</button>
         </form>
         <div id="uploadResult"></div>
@@ -120,7 +116,6 @@
             e.preventDefault();
             
             const fileInput = document.getElementById('fileInput');
-            const customKey = document.getElementById('customKey');
             
             if (!fileInput.files[0]) {
                 showResult('Please select a file', 'error');
@@ -129,10 +124,6 @@
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
-            
-            if (customKey.value.trim()) {
-                formData.append('customKey', customKey.value.trim());
-            }
 
             uploadBtn.disabled = true;
             uploadBtn.textContent = 'Uploading...';
@@ -147,7 +138,7 @@
                 
                 if (response.ok && result.success) {
                     showResult(`File uploaded successfully!<br>
-                                <strong>Key:</strong> ${result.key}<br>
+                                <strong>File Name:</strong> ${result.fileName}<br>
                                 <strong>Size:</strong> ${result.size} bytes<br>
                                 <strong>Content Type:</strong> ${result.contentType}<br>
                                 <strong>ETag:</strong> ${result.etag}`, 'success');

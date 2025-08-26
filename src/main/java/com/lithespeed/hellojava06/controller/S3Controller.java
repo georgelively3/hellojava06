@@ -28,25 +28,11 @@ public class S3Controller {
         this.s3Service = s3Service;
     }
 
-    @PostMapping("/upload")
-    @Operation(summary = "Upload a file")
-    public ResponseEntity<String> uploadFile(@RequestParam String fileName) {
-        try {
-            s3Service.uploadFile(fileName);
-            return ResponseEntity.ok("Uploaded: " + fileName);
-        } catch (Exception e) {
-            logger.error("Failed to upload file: {}", fileName, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to upload file: " + e.getMessage());
-        }
-    }
-
     @PostMapping("/upload-file")
     @Operation(summary = "Upload a multipart file", 
                description = "Upload a real file using multipart form data")
     public ResponseEntity<Map<String, Object>> uploadMultipartFile(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "customKey", required = false) String customKey) {
+            @RequestParam("file") MultipartFile file) {
         
         Map<String, Object> response = new HashMap<>();
         
@@ -56,20 +42,12 @@ public class S3Controller {
         }
 
         try {
-            String etag;
+            String etag = s3Service.uploadFile(file);
             String fileName = file.getOriginalFilename();
-            
-            if (customKey != null && !customKey.trim().isEmpty()) {
-                etag = s3Service.uploadFile(file, customKey);
-                response.put("key", customKey);
-            } else {
-                etag = s3Service.uploadFile(file);
-                response.put("key", fileName);
-            }
             
             response.put("success", true);
             response.put("message", "File uploaded successfully");
-            response.put("originalFileName", fileName);
+            response.put("fileName", fileName);
             response.put("contentType", file.getContentType());
             response.put("size", file.getSize());
             response.put("etag", etag);

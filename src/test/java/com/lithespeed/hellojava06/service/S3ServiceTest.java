@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
@@ -25,34 +26,58 @@ class S3ServiceTest {
 
     private S3Service s3Service;
     private final String testBucket = "test-bucket";
+    private MockMultipartFile testFile;
 
     @BeforeEach
     void setUp() {
         s3Service = new S3Service(s3Client, testBucket);
+        testFile = new MockMultipartFile(
+                "file", 
+                "test-document.txt", 
+                "text/plain", 
+                "This is test content for multipart upload".getBytes()
+        );
     }
 
     @Test
     void uploadFile_Success() {
         // Given
-        String fileName = "test-file.txt";
         PutObjectResponse mockResponse = PutObjectResponse.builder()
-                .eTag("test-etag")
+                .eTag("\"test-etag\"")
                 .build();
 
         when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenReturn(mockResponse);
 
-        // When & Then
-        assertDoesNotThrow(() -> s3Service.uploadFile(fileName));
+        // When
+        String result = s3Service.uploadFile(testFile);
 
-        // Verify S3Client was called correctly
+        // Then
+        assertEquals("\"test-etag\"", result);
         verify(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
+    void uploadFile_EmptyFile_ThrowsIllegalArgumentException() {
+        // Given
+        MockMultipartFile emptyFile = new MockMultipartFile(
+                "file", 
+                "empty.txt", 
+                "text/plain", 
+                new byte[0]
+        );
+
+        // When & Then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> s3Service.uploadFile(emptyFile));
+
+        assertEquals("File cannot be empty", exception.getMessage());
+        verify(s3Client, never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
     }
 
     @Test
     void uploadFile_S3Exception_ThrowsRuntimeException() {
         // Given
-        String fileName = "test-file.txt";
         S3Exception s3Exception = (S3Exception) S3Exception.builder()
                 .message("Access denied")
                 .build();
@@ -62,9 +87,9 @@ class S3ServiceTest {
 
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> s3Service.uploadFile(fileName));
+                () -> s3Service.uploadFile(testFile));
 
-        assertTrue(exception.getMessage().contains("Failed to upload file"));
+        assertTrue(exception.getMessage().contains("Failed to upload file to S3"));
         assertTrue(exception.getCause() instanceof S3Exception);
     }
 

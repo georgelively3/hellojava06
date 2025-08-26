@@ -75,21 +75,7 @@ public class S3Service {
         this.s3Client = builder.build();
     }
 
-    // Main implementation methods
-    public void uploadFile(String fileName) {
-        try {
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(this.bucketName)
-                    .key(fileName)
-                    .build();
-
-            s3Client.putObject(putRequest, RequestBody.fromString("dummy content"));
-        } catch (S3Exception e) {
-            throw new RuntimeException("Failed to upload file: " + fileName, e);
-        }
-    }
-
-    // New method to handle real multipart file uploads
+    // Main implementation method for multipart file uploads
     public String uploadFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File cannot be empty");
@@ -104,31 +90,6 @@ public class S3Service {
             PutObjectRequest putRequest = PutObjectRequest.builder()
                     .bucket(this.bucketName)
                     .key(fileName)
-                    .contentType(file.getContentType())
-                    .contentLength(file.getSize())
-                    .build();
-
-            PutObjectResponse response = s3Client.putObject(putRequest, 
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-            
-            return response.eTag();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read file content", e);
-        } catch (S3Exception e) {
-            throw new RuntimeException("Failed to upload file to S3", e);
-        }
-    }
-
-    // Overloaded method to upload multipart file with custom key name
-    public String uploadFile(MultipartFile file, String customKey) {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("File cannot be empty");
-        }
-
-        try {
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(this.bucketName)
-                    .key(customKey)
                     .contentType(file.getContentType())
                     .contentLength(file.getSize())
                     .build();
