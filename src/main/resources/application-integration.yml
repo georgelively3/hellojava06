@@ -1,0 +1,32 @@
+# Control-M Integration Configuration for Integration Testing Environment
+
+# Control-M Mock Service Configuration  
+control-m:
+  mock:
+    enabled: true
+    response-delay: 100ms
+    success-rate: 0.95
+    
+  # Integration test specific settings
+  integration-test:
+    fast-simulation: true
+    deterministic-results: true
+    
+# Faster execution for integration tests
+control-m.simulation:
+  job-types:
+    QuickTest:
+      duration: 100ms
+      success-rate: 1.0
+    DailyReport:
+      duration: 200ms
+      success-rate: 1.0
+    DataExtract:
+      duration: 300ms
+      success-rate: 0.95
+    DataTransform:
+      duration: 500ms
+      success-rate: 0.95
+    DataLoad:
+      duration: 800ms
+      success-rate: 0.90

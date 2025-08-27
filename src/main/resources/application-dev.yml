@@ -1,0 +1,35 @@
+# Control-M Integration Configuration for Development Environment
+# This profile enables service virtualization for Control-M testing
+
+# Control-M Mock Service Configuration
+control-m:
+  mock:
+    enabled: true
+    response-delay: 500ms
+    success-rate: 0.90
+  
+  # Real Control-M configuration (disabled in dev)
+  server:
+    enabled: false
+    host: localhost
+    port: 8443
+    api-path: /controlm/api
+    
+# Simulate realistic job execution times
+control-m.simulation:
+  job-types:
+    QuickTest:
+      duration: 1-2s
+      success-rate: 0.98
+    DailyReport:
+      duration: 3-5s
+      success-rate: 0.95
+    DataExtract:
+      duration: 5-8s
+      success-rate: 0.90
+    DataTransform:
+      duration: 10-15s
+      success-rate: 0.90
+    DataLoad:
+      duration: 15-20s
+      success-rate: 0.85
