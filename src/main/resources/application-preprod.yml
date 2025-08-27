@@ -26,7 +26,7 @@ spring:
 aws:
   s3:
     # BOM/Helm will provide these via ConfigMap/Secret
-    bucket-name: ${S3_BUCKET_NAME}  # From your BOM provisioning
+    bucket-name: ${S3_BUCKET_NAME:${LocalBucketName:pm3547b}}  # Fallback to BOM value
     region: ${AWS_REGION:us-east-1}
     
     # IAM Role-based access (no hardcoded keys)
