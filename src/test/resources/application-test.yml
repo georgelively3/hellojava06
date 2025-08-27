@@ -18,6 +18,11 @@ spring:
     s3:
       enabled: false
 
+# Control-M API configuration for tests
+control-m:
+  api:
+    base-url: http://localhost:2525
+
 # AWS S3 configuration for tests (prevents property binding errors)
 aws:
   s3:

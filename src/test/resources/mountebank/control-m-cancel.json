@@ -1,0 +1,80 @@
+{
+  "port": 2525,
+  "protocol": "http",
+  "name": "Control-M Cancel API Mock",
+  "stubs": [
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "POST"
+          }
+        },
+        {
+          "matches": {
+            "path": "/control-m/jobs/.*/cancel"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "${jobId}",
+              "status": "CANCELLED",
+              "cancelledAt": "2025-01-15T14:02:15Z",
+              "reason": "${reason}",
+              "message": "Job has been successfully cancelled in Control-M",
+              "cleanup": {
+                "resourcesReleased": true,
+                "tempFilesRemoved": true,
+                "connectionsClosted": true
+              }
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/cancel/)[1]; response.body.controlMJobId = jobId; response.body.reason = request.body.reason || 'User requested cancellation'; }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "POST"
+          }
+        },
+        {
+          "matches": {
+            "path": "/control-m/jobs/.*_COMPLETED_.*/cancel"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 400,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "error": "CANNOT_CANCEL_COMPLETED_JOB",
+              "message": "Cannot cancel job that has already completed",
+              "controlMJobId": "${jobId}",
+              "currentStatus": "COMPLETED",
+              "timestamp": "2025-01-15T14:02:15Z"
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/cancel/)[1]; response.body.controlMJobId = jobId; }"
+          }
+        }
+      ]
+    }
+  ]
+}

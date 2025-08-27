@@ -1,0 +1,295 @@
+{
+  "port": 2525,
+  "protocol": "http",
+  "name": "Control-M Status API Mock",
+  "stubs": [
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "GET"
+          }
+        },
+        {
+          "matches": {
+            "path": "/control-m/jobs/.*_QT_.*/status"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "${jobId}",
+              "status": "SUCCESS",
+              "startTime": "2025-01-15T14:00:00Z",
+              "endTime": "2025-01-15T14:00:30Z",
+              "output": "Quick test job completed successfully",
+              "exitCode": 0,
+              "resourceUsage": {
+                "cpu": "15.2%",
+                "memory": "112MB",
+                "runtime": "0.5 minutes"
+              },
+              "logs": [
+                "2025-01-15T14:00:00Z: Job started",
+                "2025-01-15T14:00:15Z: Running validation checks",
+                "2025-01-15T14:00:25Z: Validation passed",
+                "2025-01-15T14:00:30Z: Job completed successfully"
+              ]
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "GET"
+          }
+        },
+        {
+          "matches": {
+            "path": "/control-m/jobs/.*_DR_.*/status"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "${jobId}",
+              "status": "SUCCESS",
+              "startTime": "2025-01-15T14:00:00Z",
+              "endTime": "2025-01-15T14:05:00Z",
+              "output": "Daily report generated successfully",
+              "exitCode": 0,
+              "resourceUsage": {
+                "cpu": "45.8%",
+                "memory": "487MB",
+                "runtime": "5.0 minutes"
+              },
+              "logs": [
+                "2025-01-15T14:00:00Z: Job started",
+                "2025-01-15T14:01:00Z: Connecting to database",
+                "2025-01-15T14:02:00Z: Extracting data for report",
+                "2025-01-15T14:03:30Z: Processing 15,423 records",
+                "2025-01-15T14:04:45Z: Generating PDF report",
+                "2025-01-15T14:05:00Z: Report saved to /reports/daily_20250115.pdf"
+              ]
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "GET"
+          }
+        },
+        {
+          "matches": {
+            "path": "/control-m/jobs/.*_DE_.*/status"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "${jobId}",
+              "status": "SUCCESS",
+              "startTime": "2025-01-15T14:00:00Z",
+              "endTime": "2025-01-15T14:10:00Z",
+              "output": "Data extraction completed: 125,432 records extracted",
+              "exitCode": 0,
+              "resourceUsage": {
+                "cpu": "78.3%",
+                "memory": "1.8GB",
+                "runtime": "10.0 minutes"
+              },
+              "logs": [
+                "2025-01-15T14:00:00Z: Job started",
+                "2025-01-15T14:00:30Z: Connecting to source database",
+                "2025-01-15T14:01:00Z: Validating extraction query",
+                "2025-01-15T14:02:00Z: Starting data extraction",
+                "2025-01-15T14:05:00Z: 50% complete - 62,716 records",
+                "2025-01-15T14:08:00Z: 90% complete - 112,889 records",
+                "2025-01-15T14:10:00Z: Extraction complete - 125,432 total records"
+              ]
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "GET"
+          }
+        },
+        {
+          "matches": {
+            "path": "/control-m/jobs/.*_DT_.*/status"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "${jobId}",
+              "status": "SUCCESS",
+              "startTime": "2025-01-15T14:00:00Z",
+              "endTime": "2025-01-15T14:15:00Z",
+              "output": "Data transformation completed: 125,432 records transformed",
+              "exitCode": 0,
+              "resourceUsage": {
+                "cpu": "82.7%",
+                "memory": "1.9GB",
+                "runtime": "15.0 minutes"
+              },
+              "logs": [
+                "2025-01-15T14:00:00Z: Job started",
+                "2025-01-15T14:01:00Z: Loading transformation rules",
+                "2025-01-15T14:02:00Z: Reading source data",
+                "2025-01-15T14:03:00Z: Applying data cleansing rules",
+                "2025-01-15T14:07:00Z: Applying business transformation logic",
+                "2025-01-15T14:12:00Z: Validating transformed data",
+                "2025-01-15T14:15:00Z: Transformation complete - ready for load"
+              ]
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "GET"
+          }
+        },
+        {
+          "matches": {
+            "path": "/control-m/jobs/.*_DL_.*/status"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "${jobId}",
+              "status": "SUCCESS",
+              "startTime": "2025-01-15T14:00:00Z",
+              "endTime": "2025-01-15T14:20:00Z",
+              "output": "Data load completed: 125,432 records loaded to warehouse",
+              "exitCode": 0,
+              "resourceUsage": {
+                "cpu": "65.4%",
+                "memory": "1.6GB",
+                "runtime": "20.0 minutes"
+              },
+              "logs": [
+                "2025-01-15T14:00:00Z: Job started",
+                "2025-01-15T14:01:00Z: Connecting to target warehouse",
+                "2025-01-15T14:02:00Z: Preparing bulk load operation",
+                "2025-01-15T14:03:00Z: Starting data load",
+                "2025-01-15T14:08:00Z: 25% complete - 31,358 records loaded",
+                "2025-01-15T14:12:00Z: 50% complete - 62,716 records loaded",
+                "2025-01-15T14:16:00Z: 75% complete - 94,074 records loaded",
+                "2025-01-15T14:19:30Z: Finalizing load operation",
+                "2025-01-15T14:20:00Z: Load complete - 125,432 total records"
+              ]
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "GET"
+          }
+        },
+        {
+          "matches": {
+            "path": "/control-m/jobs/.*/status"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "${jobId}",
+              "status": "SUCCESS",
+              "startTime": "2025-01-15T14:00:00Z",
+              "endTime": "2025-01-15T14:05:00Z",
+              "output": "Job completed successfully",
+              "exitCode": 0,
+              "resourceUsage": {
+                "cpu": "35.2%",
+                "memory": "234MB",
+                "runtime": "5.0 minutes"
+              },
+              "logs": [
+                "2025-01-15T14:00:00Z: Job started",
+                "2025-01-15T14:02:30Z: Processing...",
+                "2025-01-15T14:05:00Z: Job completed successfully"
+              ]
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+          }
+        }
+      ]
+    }
+  ]
+}

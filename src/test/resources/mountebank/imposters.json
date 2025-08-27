@@ -1,0 +1,425 @@
+{
+  "imposters": [
+    {
+      "port": 2525,
+      "protocol": "http",
+      "name": "Control-M API Mock Service",
+      "stubs": [
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "POST",
+                "path": "/control-m/jobs/submit"
+              }
+            },
+            {
+              "matches": {
+                "body": {
+                  "jobName": "quicktest"
+                }
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "controlMJobId": "CTM_QT_${timestamp}",
+                  "status": "SUBMITTED",
+                  "jobName": "quicktest",
+                  "scheduledTime": "2025-01-15T14:00:00Z",
+                  "estimatedDuration": "30 seconds",
+                  "priority": "HIGH",
+                  "queueName": "TEST_QUEUE"
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "POST",
+                "path": "/control-m/jobs/submit"
+              }
+            },
+            {
+              "matches": {
+                "body": {
+                  "jobName": "dailyreport"
+                }
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "controlMJobId": "CTM_DR_${timestamp}",
+                  "status": "SUBMITTED",
+                  "jobName": "dailyreport",
+                  "scheduledTime": "2025-01-15T14:00:00Z",
+                  "estimatedDuration": "5 minutes",
+                  "priority": "NORMAL",
+                  "queueName": "REPORTING_QUEUE"
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "POST",
+                "path": "/control-m/jobs/submit"
+              }
+            },
+            {
+              "matches": {
+                "body": {
+                  "jobName": "dataextract"
+                }
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "controlMJobId": "CTM_DE_${timestamp}",
+                  "status": "SUBMITTED",
+                  "jobName": "dataextract",
+                  "scheduledTime": "2025-01-15T14:00:00Z",
+                  "estimatedDuration": "10 minutes",
+                  "priority": "HIGH",
+                  "queueName": "ETL_QUEUE"
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "POST",
+                "path": "/control-m/jobs/submit"
+              }
+            },
+            {
+              "matches": {
+                "body": {
+                  "jobName": "datatransform"
+                }
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "controlMJobId": "CTM_DT_${timestamp}",
+                  "status": "SUBMITTED",
+                  "jobName": "datatransform",
+                  "scheduledTime": "2025-01-15T14:00:00Z",
+                  "estimatedDuration": "15 minutes",
+                  "priority": "NORMAL",
+                  "queueName": "ETL_QUEUE"
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "POST",
+                "path": "/control-m/jobs/submit"
+              }
+            },
+            {
+              "matches": {
+                "body": {
+                  "jobName": "dataload"
+                }
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "controlMJobId": "CTM_DL_${timestamp}",
+                  "status": "SUBMITTED",
+                  "jobName": "dataload",
+                  "scheduledTime": "2025-01-15T14:00:00Z",
+                  "estimatedDuration": "20 minutes",
+                  "priority": "HIGH",
+                  "queueName": "ETL_QUEUE"
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "POST",
+                "path": "/control-m/jobs/submit"
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "controlMJobId": "CTM_GJ_${timestamp}",
+                  "status": "SUBMITTED",
+                  "scheduledTime": "2025-01-15T14:00:00Z",
+                  "estimatedDuration": "5 minutes",
+                  "priority": "NORMAL",
+                  "queueName": "DEFAULT_QUEUE"
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); response.body.jobName = request.body.jobName; }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "GET"
+              }
+            },
+            {
+              "matches": {
+                "path": "/control-m/jobs/.*_QT_.*/status"
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "status": "SUCCESS",
+                  "startTime": "2025-01-15T14:00:00Z",
+                  "endTime": "2025-01-15T14:00:30Z",
+                  "output": "Quick test job completed successfully",
+                  "exitCode": 0,
+                  "resourceUsage": {
+                    "cpu": "15.2%",
+                    "memory": "112MB",
+                    "runtime": "0.5 minutes"
+                  }
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "GET"
+              }
+            },
+            {
+              "matches": {
+                "path": "/control-m/jobs/.*_DR_.*/status"
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "status": "SUCCESS",
+                  "startTime": "2025-01-15T14:00:00Z",
+                  "endTime": "2025-01-15T14:05:00Z",
+                  "output": "Daily report generated successfully",
+                  "exitCode": 0,
+                  "resourceUsage": {
+                    "cpu": "45.8%",
+                    "memory": "487MB",
+                    "runtime": "5.0 minutes"
+                  }
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "GET"
+              }
+            },
+            {
+              "matches": {
+                "path": "/control-m/jobs/.*_(DE|DT|DL)_.*/status"
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "status": "SUCCESS",
+                  "startTime": "2025-01-15T14:00:00Z",
+                  "endTime": "2025-01-15T14:15:00Z",
+                  "output": "ETL job completed successfully",
+                  "exitCode": 0,
+                  "resourceUsage": {
+                    "cpu": "78.3%",
+                    "memory": "1.8GB",
+                    "runtime": "15.0 minutes"
+                  }
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "GET"
+              }
+            },
+            {
+              "matches": {
+                "path": "/control-m/jobs/.*/status"
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "status": "SUCCESS",
+                  "startTime": "2025-01-15T14:00:00Z",
+                  "endTime": "2025-01-15T14:05:00Z",
+                  "output": "Job completed successfully",
+                  "exitCode": 0,
+                  "resourceUsage": {
+                    "cpu": "35.2%",
+                    "memory": "234MB",
+                    "runtime": "5.0 minutes"
+                  }
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/status/)[1]; response.body.controlMJobId = jobId; }"
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": {
+                "method": "POST"
+              }
+            },
+            {
+              "matches": {
+                "path": "/control-m/jobs/.*/cancel"
+              }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "status": "CANCELLED",
+                  "cancelledAt": "2025-01-15T14:02:15Z",
+                  "message": "Job has been successfully cancelled in Control-M"
+                }
+              },
+              "_behaviors": {
+                "decorate": "function(request, response) { var jobId = request.path.match(/\\/control-m\\/jobs\\/(.*)\\/cancel/)[1]; response.body.controlMJobId = jobId; response.body.reason = request.body.reason || 'User requested cancellation'; }"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

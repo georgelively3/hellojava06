@@ -1,0 +1,264 @@
+{
+  "port": 2525,
+  "protocol": "http",
+  "name": "Control-M API Mock",
+  "stubs": [
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "POST",
+            "path": "/control-m/jobs/submit"
+          }
+        },
+        {
+          "matches": {
+            "body": {
+              "jobName": "quicktest"
+            }
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "CTM_QT_${timestamp}",
+              "status": "SUBMITTED",
+              "jobName": "quicktest",
+              "scheduledTime": "2025-01-15T14:00:00Z",
+              "estimatedDuration": "30 seconds",
+              "priority": "HIGH",
+              "queueName": "TEST_QUEUE",
+              "resourceRequirements": {
+                "cpu": "0.1",
+                "memory": "128MB"
+              },
+              "message": "Job submitted successfully to Control-M"
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "POST",
+            "path": "/control-m/jobs/submit"
+          }
+        },
+        {
+          "matches": {
+            "body": {
+              "jobName": "dailyreport"
+            }
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "CTM_DR_${timestamp}",
+              "status": "SUBMITTED",
+              "jobName": "dailyreport",
+              "scheduledTime": "2025-01-15T14:00:00Z",
+              "estimatedDuration": "5 minutes",
+              "priority": "NORMAL",
+              "queueName": "REPORTING_QUEUE",
+              "resourceRequirements": {
+                "cpu": "0.5",
+                "memory": "512MB"
+              },
+              "message": "Daily report job submitted to Control-M"
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "POST",
+            "path": "/control-m/jobs/submit"
+          }
+        },
+        {
+          "matches": {
+            "body": {
+              "jobName": "dataextract"
+            }
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "CTM_DE_${timestamp}",
+              "status": "SUBMITTED",
+              "jobName": "dataextract",
+              "scheduledTime": "2025-01-15T14:00:00Z",
+              "estimatedDuration": "10 minutes",
+              "priority": "HIGH",
+              "queueName": "ETL_QUEUE",
+              "resourceRequirements": {
+                "cpu": "2.0",
+                "memory": "2GB"
+              },
+              "message": "Data extract job submitted to Control-M"
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "POST",
+            "path": "/control-m/jobs/submit"
+          }
+        },
+        {
+          "matches": {
+            "body": {
+              "jobName": "datatransform"
+            }
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "CTM_DT_${timestamp}",
+              "status": "SUBMITTED",
+              "jobName": "datatransform",
+              "scheduledTime": "2025-01-15T14:00:00Z",
+              "estimatedDuration": "15 minutes",
+              "priority": "NORMAL",
+              "queueName": "ETL_QUEUE",
+              "resourceRequirements": {
+                "cpu": "2.0",
+                "memory": "2GB"
+              },
+              "message": "Data transform job submitted to Control-M"
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "POST",
+            "path": "/control-m/jobs/submit"
+          }
+        },
+        {
+          "matches": {
+            "body": {
+              "jobName": "dataload"
+            }
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "CTM_DL_${timestamp}",
+              "status": "SUBMITTED",
+              "jobName": "dataload",
+              "scheduledTime": "2025-01-15T14:00:00Z",
+              "estimatedDuration": "20 minutes",
+              "priority": "HIGH",
+              "queueName": "ETL_QUEUE",
+              "resourceRequirements": {
+                "cpu": "2.0",
+                "memory": "2GB"
+              },
+              "message": "Data load job submitted to Control-M"
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); }"
+          }
+        }
+      ]
+    },
+    {
+      "predicates": [
+        {
+          "equals": {
+            "method": "POST",
+            "path": "/control-m/jobs/submit"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "is": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "controlMJobId": "CTM_GJ_${timestamp}",
+              "status": "SUBMITTED",
+              "jobName": "${jobName}",
+              "scheduledTime": "2025-01-15T14:00:00Z",
+              "estimatedDuration": "5 minutes",
+              "priority": "NORMAL",
+              "queueName": "DEFAULT_QUEUE",
+              "resourceRequirements": {
+                "cpu": "0.25",
+                "memory": "256MB"
+              },
+              "message": "Generic job submitted to Control-M"
+            }
+          },
+          "_behaviors": {
+            "decorate": "function(request, response) { response.body.controlMJobId = response.body.controlMJobId.replace('${timestamp}', Date.now()); response.body.jobName = request.body.jobName; }"
+          }
+        }
+      ]
+    }
+  ]
+}

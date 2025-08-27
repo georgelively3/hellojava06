@@ -31,6 +31,18 @@ spring:
     baseline-on-migrate: true
     validate-on-migrate: true
 
+# Control-M API Configuration
+control-m:
+  api:
+    base-url: ${CONTROL_M_API_URL:http://localhost:2525}
+
+# AWS S3 Configuration
+aws:
+  s3:
+    region: ${AWS_REGION:us-east-1}
+    bucket-name: ${LocalBucketName:pm3547b}
+    use-iam-role: ${AWS_USE_IAM_ROLE:true}
+
 ---
 # Test profile configuration
 spring:
