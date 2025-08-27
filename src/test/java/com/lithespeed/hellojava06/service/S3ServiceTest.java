@@ -94,6 +94,75 @@ class S3ServiceTest {
     }
 
     @Test
+    void uploadFile_FileWithNullName_UsesGeneratedName() throws Exception {
+        // Given
+        MockMultipartFile fileWithNullName = new MockMultipartFile(
+                "file", 
+                null, // null filename
+                "text/plain", 
+                "Content with null filename".getBytes()
+        );
+        
+        PutObjectResponse mockResponse = PutObjectResponse.builder()
+                .eTag("\"generated-etag\"")
+                .build();
+
+        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+                .thenReturn(mockResponse);
+
+        // When
+        String result = s3Service.uploadFile(fileWithNullName);
+
+        // Then
+        assertEquals("\"generated-etag\"", result);
+        verify(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
+    void uploadFile_FileWithEmptyName_UsesGeneratedName() throws Exception {
+        // Given
+        MockMultipartFile fileWithEmptyName = new MockMultipartFile(
+                "file", 
+                "   ", // empty/whitespace filename
+                "text/plain", 
+                "Content with empty filename".getBytes()
+        );
+        
+        PutObjectResponse mockResponse = PutObjectResponse.builder()
+                .eTag("\"generated-etag-2\"")
+                .build();
+
+        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+                .thenReturn(mockResponse);
+
+        // When
+        String result = s3Service.uploadFile(fileWithEmptyName);
+
+        // Then
+        assertEquals("\"generated-etag-2\"", result);
+        verify(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
+    void uploadFile_IOException_ThrowsRuntimeException() throws Exception {
+        // Given
+        MockMultipartFile mockFile = mock(MockMultipartFile.class);
+        when(mockFile.isEmpty()).thenReturn(false);
+        when(mockFile.getOriginalFilename()).thenReturn("test.txt");
+        when(mockFile.getContentType()).thenReturn("text/plain");
+        when(mockFile.getSize()).thenReturn(100L);
+        when(mockFile.getInputStream()).thenThrow(new java.io.IOException("Failed to read file"));
+
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> s3Service.uploadFile(mockFile));
+
+        assertTrue(exception.getMessage().contains("Failed to read file content"));
+        assertTrue(exception.getCause() instanceof java.io.IOException);
+        verify(s3Client, never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
     void listFiles_Success() {
         // Given
         S3Object obj1 = S3Object.builder().key("file1.txt").build();

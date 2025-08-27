@@ -59,6 +59,35 @@ class S3ControllerTest {
     }
 
     @Test
+    void testListFiles_ServiceException_ReturnsInternalServerError() throws Exception {
+        // Given
+        when(s3Service.listFiles()).thenThrow(new RuntimeException("S3 service unavailable"));
+
+        // When & Then
+        mockMvc.perform(get("/s3/list")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$").doesNotExist()); // body should be null
+
+        verify(s3Service, times(1)).listFiles();
+    }
+
+    @Test
+    void testListFiles_EmptyList_ReturnsEmptyArray() throws Exception {
+        // Given
+        when(s3Service.listFiles()).thenReturn(Arrays.asList());
+
+        // When & Then
+        mockMvc.perform(get("/s3/list")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+
+        verify(s3Service, times(1)).listFiles();
+    }
+
+    @Test
     void testHealthCheck() throws Exception {
         mockMvc.perform(get("/s3/health")
                 .accept(MediaType.APPLICATION_JSON))
