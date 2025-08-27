@@ -99,15 +99,42 @@ jacocoTestReport {
         csv.required = false
     }
     executionData fileTree(project.rootDir.absolutePath).include("**/build/jacoco/*.exec")
+    
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                // Exclude configuration classes (Spring Boot auto-config)
+                '**/config/**',
+                // Exclude entity classes (mostly boilerplate)
+                '**/entity/**',
+                // Exclude main application class
+                '**/*Application*'
+            ])
+        }))
+    }
 }
 
 jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                // Exclude configuration classes (Spring Boot auto-config)
+                '**/config/**',
+                // Exclude entity classes (mostly boilerplate)
+                '**/entity/**',
+                // Exclude main application class
+                '**/*Application*'
+            ])
+        }))
+    }
+    
     violationRules {
         rule {
             limit {
-                // Temporarily lowered due to LocalStack transition
-                // Will restore to 0.80 once LocalStack integration tests are running
-                minimum = 0.60
+                // Now targeting business logic coverage (controller, service, exception)
+                minimum = 0.90
             }
         }
     }
