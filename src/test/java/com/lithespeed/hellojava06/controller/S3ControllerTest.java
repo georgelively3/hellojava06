@@ -67,7 +67,11 @@ class S3ControllerTest {
         mockMvc.perform(get("/s3/list")
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$").doesNotExist()); // body should be null
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.operation").value("list files from S3"))
+                .andExpect(jsonPath("$.message").value("S3 service unavailable"))
+                .andExpect(jsonPath("$.exceptionType").value("RuntimeException"))
+                .andExpect(jsonPath("$.stackTrace").exists());
 
         verify(s3Service, times(1)).listFiles();
     }
@@ -144,7 +148,10 @@ class S3ControllerTest {
                 .file(testFile))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error").exists());
+                .andExpect(jsonPath("$.operation").value("upload file to S3"))
+                .andExpect(jsonPath("$.message").value("S3 service unavailable"))
+                .andExpect(jsonPath("$.exceptionType").value("RuntimeException"))
+                .andExpect(jsonPath("$.stackTrace").exists());
     }
 
     @Test
