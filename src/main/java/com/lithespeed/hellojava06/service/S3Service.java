@@ -12,6 +12,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.processing.Generated;
 import java.io.IOException;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 @Service
 public class S3Service {
 
+    private static final Logger logger = LoggerFactory.getLogger(S3Service.class);
     private final S3Client s3Client;
     private final String bucketName;
 
@@ -47,6 +50,10 @@ public class S3Service {
             @Value("${aws.s3.max-connections:25}") int maxConnections) {
 
         this.bucketName = bucketName;
+        
+        // Log the bucket configuration for debugging
+        logger.info("S3Service configured with bucket: {}, region: {}, useIamRole: {}, endpoint: {}", 
+                   bucketName, region, useIamRole, endpointUrl.isEmpty() ? "default" : endpointUrl);
 
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region));
