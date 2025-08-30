@@ -72,7 +72,7 @@ class GlobalExceptionHandlerTest {
         MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = mock(BindingResult.class);
         FieldError fieldError = new FieldError("user", "email", "Email is required");
-        
+
         when(exception.getBindingResult()).thenReturn(bindingResult);
         when(bindingResult.getAllErrors()).thenReturn(List.of(fieldError));
 
@@ -87,7 +87,7 @@ class GlobalExceptionHandlerTest {
         assertEquals("Validation failed", response.getBody().getMessage());
         assertEquals("uri=/test", response.getBody().getPath());
         assertNotNull(response.getBody().getTimestamp());
-        
+
         Map<String, String> fieldErrors = response.getBody().getFieldErrors();
         assertEquals(1, fieldErrors.size());
         assertEquals("Email is required", fieldErrors.get("email"));

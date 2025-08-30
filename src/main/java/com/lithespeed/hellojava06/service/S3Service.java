@@ -30,7 +30,8 @@ public class S3Service {
     private final String bucketName;
 
     // For testing with injected S3Client (e.g., LocalStack)
-    // @Generated annotation excludes this constructor from JaCoCo coverage since it's only used in tests
+    // @Generated annotation excludes this constructor from JaCoCo coverage since
+    // it's only used in tests
     @Generated("test-only-constructor")
     public S3Service(S3Client s3Client, String bucketName) {
         this.s3Client = s3Client;
@@ -50,10 +51,10 @@ public class S3Service {
             @Value("${aws.s3.max-connections:25}") int maxConnections) {
 
         this.bucketName = bucketName;
-        
+
         // Log the bucket configuration for debugging
-        logger.info("S3Service configured with bucket: {}, region: {}, useIamRole: {}, endpoint: {}", 
-                   bucketName, region, useIamRole, endpointUrl.isEmpty() ? "default" : endpointUrl);
+        logger.info("S3Service configured with bucket: {}, region: {}, useIamRole: {}, endpoint: {}",
+                bucketName, region, useIamRole, endpointUrl.isEmpty() ? "default" : endpointUrl);
 
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region));
@@ -101,9 +102,9 @@ public class S3Service {
                     .contentLength(file.getSize())
                     .build();
 
-            PutObjectResponse response = s3Client.putObject(putRequest, 
+            PutObjectResponse response = s3Client.putObject(putRequest,
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-            
+
             return response.eTag();
         } catch (IOException e) {
             throw new RuntimeException("Failed to read file content", e);

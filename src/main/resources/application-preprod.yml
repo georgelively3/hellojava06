@@ -26,13 +26,16 @@ spring:
 aws:
   s3:
     # BOM/Helm will provide these via ConfigMap/Secret
-    bucket-name: ${S3_BUCKET_NAME:${LocalBucketName:sad0001-us-east-1-poc048-pm3547-pp-pm3547b}}  # Updated to match actual Rafay bucket name
+    bucket-name: ${S3_BUCKET_NAME:sad0001-us-east-1-poc048-pm3547-pp-pm3547b}  # Rafay bucket name with fallback
     region: ${AWS_REGION:us-east-1}
     
-    # IAM Role-based access (no hardcoded keys)
-    # Your Helm charts should set up IRSA (IAM Roles for Service Accounts)
+    # IAM Role-based access - IRSA handles role assumption automatically
+    # Role ARN is configured at Kubernetes Service Account level
     use-iam-role: ${AWS_USE_IAM_ROLE:true}
-    role-arn: ${AWS_ROLE_ARN:}  # Optional: explicit role ARN
+    
+    # Debug environment variables (temporary)
+    debug-aws-role-arn: ${AWS_ROLE_ARN:NOT_SET}
+    debug-web-identity-token: ${AWS_WEB_IDENTITY_TOKEN_FILE:NOT_SET}
     
     # Connection settings for K8s environment
     connection-timeout: ${S3_CONNECTION_TIMEOUT:10000}
