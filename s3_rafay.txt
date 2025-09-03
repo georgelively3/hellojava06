@@ -1,0 +1,51 @@
+kubectl exec -it <pod-name> -n poc048-z2-pp-pm3547 -- bash -c '
+set -euo pipefail
+
+# Replace with your bucket
+BUCKET="sad0001-us-east-1-poc048-pm3547-pp4-pm3547b"
+REGION="us-east-1"
+
+# Fetch credentials
+ROLE=$(curl -s 169.254.169.254/latest/meta-data/iam/security-credentials/)
+CREDS=$(curl -s 169.254.169.254/latest/meta-data/iam/security-credentials/$ROLE)
+AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r .AccessKeyId)
+AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r .SecretAccessKey)
+AWS_SESSION_TOKEN=$(echo $CREDS | jq -r .Token)
+
+# Timestamp
+AMZ_DATE=$(date -u +"%Y%m%dT%H%M%SZ")
+DATE_STAMP=$(date -u +"%Y%m%d")
+
+# Request
+SERVICE="s3"
+HOST="$BUCKET.s3.$REGION.amazonaws.com"
+REQUEST="GET"
+CANON_URI="/"
+CANON_QUERY=""
+CANON_HEADERS="host:$HOST\nx-amz-date:$AMZ_DATE\nx-amz-security-token:$AWS_SESSION_TOKEN\n"
+SIGNED_HEADERS="host;x-amz-date;x-amz-security-token"
+PAYLOAD_HASH=$(printf "" | sha256sum | cut -d" " -f1)
+CANON_REQUEST="$REQUEST\n$CANON_URI\n$CANON_QUERY\n$CANON_HEADERS\n$SIGNED_HEADERS\n$PAYLOAD_HASH"
+
+# String to sign
+ALGO="AWS4-HMAC-SHA256"
+SCOPE="$DATE_STAMP/$REGION/$SERVICE/aws4_request"
+STRING_TO_SIGN="$ALGO\n$AMZ_DATE\n$SCOPE\n$(printf "$CANON_REQUEST" | sha256sum | cut -d" " -f1)"
+
+# Signing key
+kSecret="AWS4$AWS_SECRET_ACCESS_KEY"
+kDate=$(printf $DATE_STAMP | openssl dgst -sha256 -hmac "$kSecret" -binary)
+kRegion=$(printf $REGION | openssl dgst -sha256 -mac HMAC -macopt hexkey:$(echo -n $kDate | xxd -p -c 256) -binary)
+kService=$(printf $SERVICE | openssl dgst -sha256 -mac HMAC -macopt hexkey:$(echo -n $kRegion | xxd -p -c 256) -binary)
+kSigning=$(printf "aws4_request" | openssl dgst -sha256 -mac HMAC -macopt hexkey:$(echo -n $kService | xxd -p -c 256) -binary)
+SIGNATURE=$(printf "$STRING_TO_SIGN" | openssl dgst -sha256 -mac HMAC -macopt hexkey:$(echo -n $kSigning | xxd -p -c 256) | cut -d" " -f2)
+
+# Auth header
+AUTH="$ALGO Credential=$AWS_ACCESS_KEY_ID/$SCOPE, SignedHeaders=$SIGNED_HEADERS, Signature=$SIGNATURE"
+
+# Perform the request
+curl -s -H "Authorization: $AUTH" \
+     -H "x-amz-date: $AMZ_DATE" \
+     -H "x-amz-security-token: $AWS_SESSION_TOKEN" \
+     https://$HOST
+'
