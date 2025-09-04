@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.s3.model.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -215,5 +216,38 @@ class S3ServiceTest {
 
                 assertTrue(exception.getMessage().contains("Failed to list files"));
                 assertTrue(exception.getCause() instanceof S3Exception);
+        }
+
+        @Test
+        void debugCredentials_ReturnsNonEmptyMap() {
+                // When
+                Map<String, String> result = s3Service.debugCredentials();
+
+                // Then
+                assertNotNull(result, "debugCredentials should not return null");
+                assertFalse(result.isEmpty(), "debugCredentials should return a non-empty map");
+        }
+
+        @Test
+        void debugCredentials_DoesNotThrowException() {
+                // When & Then - should not throw any exception
+                assertDoesNotThrow(() -> {
+                        Map<String, String> result = s3Service.debugCredentials();
+                        assertNotNull(result);
+                });
+        }
+
+        @Test
+        void debugCredentials_HandlesNullValues() {
+                // When
+                Map<String, String> result = s3Service.debugCredentials();
+
+                // Then - Just verify the method completes without throwing
+                assertNotNull(result, "debugCredentials should return a map even with mock values");
+                
+                // If bucket-name key exists, verify it's not empty
+                if (result.containsKey("bucket-name")) {
+                    assertNotNull(result.get("bucket-name"), "bucket-name should not be empty if present");
+                }
         }
 }
