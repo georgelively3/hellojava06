@@ -4,10 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -45,32 +43,33 @@ public class S3Service {
     @Autowired
     public S3Service(@Value("${aws.s3.region:us-east-1}") String region,
             @Value("${aws.s3.bucket-name:test-bucket}") String bucketName,
-            @Value("${aws.s3.use-iam-role:true}") boolean useIamRole,
             @Value("${aws.s3.endpoint-url:}") String endpointUrl,
-            @Value("${aws.s3.access-key:}") String accessKey,
-            @Value("${aws.s3.secret-key:}") String secretKey,
             @Value("${aws.s3.connection-timeout:10000}") int connectionTimeout,
             @Value("${aws.s3.socket-timeout:30000}") int socketTimeout,
             @Value("${aws.s3.max-connections:25}") int maxConnections) {
 
         this.bucketName = bucketName;
 
+        // Comprehensive debug logging to understand configuration
+        logger.info("=== S3Service Constructor Debug ===");
+        logger.info("region: '{}'", region);
+        logger.info("bucketName: '{}'", bucketName);
+        logger.info("endpointUrl: '{}'", endpointUrl);
+        logger.info("endpointUrl isEmpty: {}", endpointUrl.isEmpty());
+        logger.info("connectionTimeout: {}", connectionTimeout);
+        logger.info("socketTimeout: {}", socketTimeout);
+        logger.info("maxConnections: {}", maxConnections);
+
         // Log the bucket configuration for debugging
-        logger.info("S3Service configured with bucket: {}, region: {}, useIamRole: {}, endpoint: {}",
-                bucketName, region, useIamRole, endpointUrl.isEmpty() ? "default" : endpointUrl);
+        logger.info("S3Service configured with bucket: {}, region: {}, endpoint: {}",
+                bucketName, region, endpointUrl.isEmpty() ? "default" : endpointUrl);
 
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region));
 
-        // Configure credentials
-        if (useIamRole) {
-            // Use DefaultCredentialsProvider for IAM roles (K8s IRSA)
-            builder.credentialsProvider(DefaultCredentialsProvider.create());
-        } else if (!accessKey.isEmpty() && !secretKey.isEmpty()) {
-            // Use static credentials for dev environments
-            builder.credentialsProvider(StaticCredentialsProvider.create(
-                    AwsBasicCredentials.create(accessKey, secretKey)));
-        }
+        // Always use DefaultCredentialsProvider for K8s IRSA authentication
+        logger.info("Using DefaultCredentialsProvider for IRSA authentication in K8s");
+        builder.credentialsProvider(DefaultCredentialsProvider.create());
 
         // Configure endpoint override if provided
         if (!endpointUrl.isEmpty()) {
