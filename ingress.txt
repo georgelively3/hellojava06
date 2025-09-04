@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-app-test-ingress
+  namespace: poc048-z2-pp-pm3547
+spec:
+  rules:
+  - host: my-app-preprod.example.com   # replace with the URL you normally use
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: my-app-service         # the service name from step 1
+            port:
+              number: 8080               # the port from step 1
