@@ -169,6 +169,26 @@ public class S3Controller {
     }
 
     /**
+     * Debug endpoint to show what credentials the S3Service is actually using
+     * DELETE THIS METHOD once debugging is complete!
+     */
+    @GetMapping("/debug/credentials")
+    @Operation(summary = "Debug S3 credentials (REMOVE IN PRODUCTION)")
+    public ResponseEntity<Map<String, String>> getDebugCredentials() {
+        try {
+            Map<String, String> credentialsInfo = s3Service.debugCredentials();
+            logger.info("S3 credentials debug endpoint accessed");
+            return ResponseEntity.ok(credentialsInfo);
+        } catch (Exception e) {
+            logger.error("Error getting S3 credentials debug info", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            errorResponse.put("error-type", e.getClass().getSimpleName());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
      * Creates a detailed error response with stack trace and context information
      */
     private Map<String, Object> createErrorResponse(String operation, Exception e, String context) {

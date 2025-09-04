@@ -14,7 +14,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.lithespeed.hellojava06.service.S3Service;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -173,5 +175,26 @@ class S3ControllerTest {
                                 .andExpect(jsonPath("$.filtered-environment").exists())
                                 .andExpect(jsonPath("$.timestamp").exists())
                                 .andExpect(jsonPath("$.file-checks.irsa-token-exists").exists());
+        }
+
+        @Test
+        @DisplayName("Should return S3 credentials debug information")
+        void shouldReturnDebugCredentials() throws Exception {
+                // Given
+                Map<String, String> mockCredentialsInfo = new HashMap<>();
+                mockCredentialsInfo.put("credentials-provider-type", "DefaultCredentialsProvider");
+                mockCredentialsInfo.put("credential-type", "AwsSessionCredentials");
+                mockCredentialsInfo.put("has-access-key", "true");
+                mockCredentialsInfo.put("is-session-credentials", "true");
+                
+                when(s3Service.debugCredentials()).thenReturn(mockCredentialsInfo);
+
+                // When & Then
+                mockMvc.perform(get("/s3/debug/credentials"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.credentials-provider-type").value("DefaultCredentialsProvider"))
+                                .andExpect(jsonPath("$.credential-type").value("AwsSessionCredentials"))
+                                .andExpect(jsonPath("$.has-access-key").value("true"))
+                                .andExpect(jsonPath("$.is-session-credentials").value("true"));
         }
 }
