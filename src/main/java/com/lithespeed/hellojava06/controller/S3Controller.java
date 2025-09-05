@@ -19,8 +19,9 @@ import com.lithespeed.hellojava06.service.S3Service;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/s3")
@@ -39,59 +40,63 @@ public class S3Controller {
 
     @PostMapping(value = "/upload-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload a multipart file", description = "Upload a real file using multipart form data")
-    public ResponseEntity<Map<String, Object>> uploadMultipartFile(
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> uploadMultipartFile(
             @RequestBody(description = "File to upload", required = true) @RequestParam("file") MultipartFile file) {
 
         Map<String, Object> response = new HashMap<>();
 
         if (file.isEmpty()) {
             response.put("error", "File cannot be empty");
-            return ResponseEntity.badRequest().body(response);
+            return CompletableFuture.completedFuture(ResponseEntity.badRequest().body(response));
         }
 
-        try {
-            String etag = s3Service.uploadFile(file);
-            logger.info("File uploaded successfully using S3Service");
-            
-            String fileName = file.getOriginalFilename();
+        String fileName = file.getOriginalFilename();
+        logger.info("Starting async upload for file: {} (size: {} bytes)", fileName, file.getSize());
 
-            response.put("success", true);
-            response.put("message", "File uploaded successfully");
-            response.put("fileName", fileName);
-            response.put("contentType", file.getContentType());
-            response.put("size", file.getSize());
-            response.put("etag", etag);
+        return s3Service.uploadFileAsync("uploads", generateFileId(), file)
+            .thenApply(etag -> {
+                logger.info("File uploaded successfully using async S3Service");
+                
+                response.put("success", true);
+                response.put("message", "File uploaded successfully");
+                response.put("fileName", fileName);
+                response.put("contentType", file.getContentType());
+                response.put("size", file.getSize());
+                response.put("etag", etag);
 
-            logger.info("Successfully uploaded file: {} (size: {} bytes)",
-                    fileName, file.getSize());
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Failed to upload file: {}", file.getOriginalFilename(), e);
-            Map<String, Object> errorResponse = createErrorResponse(
-                    "upload file to S3",
-                    e,
-                    "fileName: " + file.getOriginalFilename());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+                logger.info("Successfully uploaded file: {} (size: {} bytes)", fileName, file.getSize());
+                return ResponseEntity.ok(response);
+            })
+            .exceptionally(e -> {
+                logger.error("Failed to upload file: {}", fileName, e);
+                Exception exception = (e instanceof Exception) ? (Exception) e : new RuntimeException(e);
+                Map<String, Object> errorResponse = createErrorResponse(
+                        "upload file to S3",
+                        exception,
+                        "fileName: " + fileName);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            });
     }
 
     @GetMapping("/list")
     @Operation(summary = "List files")
-    public ResponseEntity<?> listFiles() {
-        try {
-            List<String> files = s3Service.listFiles();
-            logger.info("Files listed successfully using S3Service");
-            
-            return ResponseEntity.ok(files);
-        } catch (Exception e) {
-            logger.error("Failed to list files", e);
-            Map<String, Object> errorResponse = createErrorResponse(
-                    "list files from S3",
-                    e,
-                    "Attempting to retrieve S3 file list");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+    public CompletableFuture<ResponseEntity<Object>> listFiles() {
+        logger.info("Starting async file listing using S3Service");
+        
+        return s3Service.listFilesAsync()
+            .thenApply(files -> {
+                logger.info("Files listed successfully using async S3Service: {} files", files.size());
+                return ResponseEntity.<Object>ok(files);
+            })
+            .exceptionally(e -> {
+                logger.error("Failed to list files", e);
+                Exception exception = (e instanceof Exception) ? (Exception) e : new RuntimeException(e);
+                Map<String, Object> errorResponse = createErrorResponse(
+                        "list files from S3",
+                        exception,
+                        "Attempting to retrieve S3 file list");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body((Object) errorResponse);
+            });
     }
 
     @GetMapping("/health")
@@ -217,5 +222,12 @@ public class S3Controller {
         }
 
         return errorResponse;
+    }
+
+    /**
+     * Generates a unique file ID for organizing uploads
+     */
+    private String generateFileId() {
+        return UUID.randomUUID().toString();
     }
 }
