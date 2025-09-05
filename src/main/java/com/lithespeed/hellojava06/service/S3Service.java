@@ -1,152 +1,212 @@
 package com.lithespeed.hellojava06.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.processing.Generated;
 import java.io.IOException;
-import java.net.URI;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
 public class S3Service {
 
     private static final Logger logger = LoggerFactory.getLogger(S3Service.class);
-    private final S3Client s3Client;
-    private final String bucketName;
+    
+    private final S3AsyncClient s3AsyncClient;
+    
+    @Value("${aws.s3.bucket-name:test-bucket}")
+    private String bucketName;
+    
+    @Value("${aws.s3.presign-duration:PT15M}")
+    private Duration presignDuration;
 
-    // For testing with injected S3Client (e.g., LocalStack)
-    // @Generated annotation excludes this constructor from JaCoCo coverage since
-    // it's only used in tests
-    @Generated("test-only-constructor")
-    public S3Service(S3Client s3Client, String bucketName) {
-        this.s3Client = s3Client;
-        this.bucketName = bucketName;
-    }
-
-    // Production constructor for K8s/BOM integration with flexible endpoint support
     @Autowired
-    public S3Service(@Value("${aws.s3.region:us-east-1}") String region,
-            @Value("${aws.s3.bucket-name:test-bucket}") String bucketName,
-            @Value("${aws.s3.endpoint-url:}") String endpointUrl,
-            @Value("${aws.s3.connection-timeout:10000}") int connectionTimeout,
-            @Value("${aws.s3.socket-timeout:30000}") int socketTimeout,
-            @Value("${aws.s3.max-connections:25}") int maxConnections) {
-
-        this.bucketName = bucketName;
-
-        // Comprehensive debug logging to understand configuration
-        logger.info("=== S3Service Constructor Debug ===");
-        logger.info("region: '{}'", region);
-        logger.info("bucketName: '{}'", bucketName);
-        logger.info("endpointUrl: '{}'", endpointUrl);
-        logger.info("endpointUrl isEmpty: {}", endpointUrl.isEmpty());
-        logger.info("connectionTimeout: {}", connectionTimeout);
-        logger.info("socketTimeout: {}", socketTimeout);
-        logger.info("maxConnections: {}", maxConnections);
-
-        // Log the bucket configuration for debugging
-        logger.info("S3Service configured with bucket: {}, region: {}, endpoint: {}",
-                bucketName, region, endpointUrl.isEmpty() ? "default" : endpointUrl);
-
-        S3ClientBuilder builder = S3Client.builder()
-                .region(Region.of(region));
-
-        // Always use DefaultCredentialsProvider for K8s IRSA authentication
-        logger.info("Using DefaultCredentialsProvider for IRSA authentication in K8s");
-        builder.credentialsProvider(DefaultCredentialsProvider.create());
-
-        // Configure endpoint override if provided
-        if (!endpointUrl.isEmpty()) {
-            builder.endpointOverride(URI.create(endpointUrl));
-            builder.forcePathStyle(true); // Required for non-AWS S3 endpoints
-        }
-
-        // Apply timeouts
-        builder.overrideConfiguration(config -> config
-                .apiCallTimeout(Duration.ofMillis(socketTimeout))
-                .apiCallAttemptTimeout(Duration.ofMillis(connectionTimeout)));
-
-        this.s3Client = builder.build();
+    public S3Service(S3AsyncClient s3AsyncClient) {
+        this.s3AsyncClient = s3AsyncClient;
+        logger.info("S3Service initialized with S3AsyncClient CRT");
     }
 
-    // Main implementation method for multipart file uploads
-    public String uploadFile(MultipartFile file) {
+    // For testing with injected S3AsyncClient
+    @Generated("test-only-constructor")
+    public S3Service(S3AsyncClient s3AsyncClient, String bucketName) {
+        this.s3AsyncClient = s3AsyncClient;
+        this.bucketName = bucketName;
+    }
+
+    /**
+     * Uploads provided {@link MultipartFile} to configured S3 Bucket using key {@code
+     * entityType/entityId/UUID.extension}.
+     *
+     * @param entityId ID of the entity for which this document is being uploaded
+     * @param entityType Type of the entity for which this document is being uploaded
+     * @param file Actual file to be uploaded
+     * @return {@code entityType/entityId/UUID.extension}
+     */
+    public CompletableFuture<String> uploadFileAsync(String entityType, String entityId, MultipartFile file) {
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("File cannot be empty");
+            return CompletableFuture.failedFuture(new IllegalArgumentException("File cannot be empty"));
         }
 
         try {
+            String originalFileName = file.getOriginalFilename();
+            String extension = "";
+            if (originalFileName != null && originalFileName.contains(".")) {
+                extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+            }
+            
+            String key = String.format("%s/%s/%s%s", entityType, entityId, UUID.randomUUID().toString(), extension);
+            
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(file.getContentType())
+                    .contentLength(file.getSize())
+                    .build();
+
+            AsyncRequestBody requestBody = AsyncRequestBody.fromInputStream(
+                file.getInputStream(), file.getSize(), null);
+
+            logger.info("Starting async upload for key: {} to bucket: {}", key, bucketName);
+
+            return s3AsyncClient.putObject(putRequest, requestBody)
+                    .thenApply(response -> {
+                        logger.info("Successfully uploaded file with key: {}, ETag: {}", key, response.eTag());
+                        return key;
+                    })
+                    .exceptionally(throwable -> {
+                        logger.error("Failed to upload file with key: {}", key, throwable);
+                        throw new RuntimeException("Failed to upload file to S3", throwable);
+                    });
+
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(new RuntimeException("Failed to read file content", e));
+        }
+    }
+
+    /**
+     * Synchronous wrapper for file upload - compatible with existing controller
+     */
+    public String uploadFile(MultipartFile file) {
+        // Use simple timestamp-based key for compatibility with existing controller
+        try {
+            if (file.isEmpty()) {
+                throw new IllegalArgumentException("File cannot be empty");
+            }
+
             String fileName = file.getOriginalFilename();
             if (fileName == null || fileName.trim().isEmpty()) {
                 fileName = "uploaded-file-" + System.currentTimeMillis();
             }
 
             PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(this.bucketName)
+                    .bucket(bucketName)
                     .key(fileName)
                     .contentType(file.getContentType())
                     .contentLength(file.getSize())
                     .build();
 
-            PutObjectResponse response = s3Client.putObject(putRequest,
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+            AsyncRequestBody requestBody = AsyncRequestBody.fromInputStream(
+                file.getInputStream(), file.getSize(), null);
 
+            logger.info("Starting sync upload for file: {} to bucket: {}", fileName, bucketName);
+
+            PutObjectResponse response = s3AsyncClient.putObject(putRequest, requestBody)
+                    .join(); // Block for synchronous behavior
+
+            logger.info("Successfully uploaded file: {}, ETag: {}", fileName, response.eTag());
             return response.eTag();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read file content", e);
-        } catch (S3Exception e) {
+
+        } catch (Exception e) {
+            logger.error("Failed to upload file", e);
             throw new RuntimeException("Failed to upload file to S3", e);
         }
     }
 
+    /**
+     * Lists all files in the configured S3 bucket
+     * @return List of file keys
+     */
     public List<String> listFiles() {
         try {
-            ListObjectsRequest request = ListObjectsRequest.builder()
-                    .bucket(this.bucketName)
+            logger.info("Listing files from bucket: {}", bucketName);
+
+            ListObjectsV2Request request = ListObjectsV2Request.builder()
+                    .bucket(bucketName)
                     .build();
 
-            ListObjectsResponse response = s3Client.listObjects(request);
+            ListObjectsV2Response response = s3AsyncClient.listObjectsV2(request)
+                    .join(); // Block for synchronous behavior
 
-            return response.contents()
+            List<String> fileKeys = response.contents()
                     .stream()
                     .map(S3Object::key)
                     .collect(Collectors.toList());
-        } catch (S3Exception e) {
-            throw new RuntimeException("Failed to list files", e);
+
+            logger.info("Successfully listed {} files from bucket: {}", fileKeys.size(), bucketName);
+            return fileKeys;
+
+        } catch (Exception e) {
+            logger.error("Failed to list files from bucket: {}", bucketName, e);
+            throw new RuntimeException("Failed to list files from S3", e);
         }
     }
 
     /**
-     * Debug method to show what credentials the S3Client is actually using
-     * DELETE THIS METHOD once debugging is complete!
+     * Async version of listFiles
+     */
+    public CompletableFuture<List<String>> listFilesAsync() {
+        logger.info("Async listing files from bucket: {}", bucketName);
+
+        ListObjectsV2Request request = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .build();
+
+        return s3AsyncClient.listObjectsV2(request)
+                .thenApply(response -> {
+                    List<String> fileKeys = response.contents()
+                            .stream()
+                            .map(S3Object::key)
+                            .collect(Collectors.toList());
+                    
+                    logger.info("Successfully async listed {} files from bucket: {}", fileKeys.size(), bucketName);
+                    return fileKeys;
+                })
+                .exceptionally(throwable -> {
+                    logger.error("Failed to async list files from bucket: {}", bucketName, throwable);
+                    throw new RuntimeException("Failed to list files from S3", throwable);
+                });
+    }
+
+    /**
+     * Debug method to show what credentials the S3AsyncClient is actually using
+     * Useful for debugging AWS authentication issues in different environments
      */
     public Map<String, String> debugCredentials() {
         Map<String, String> result = new HashMap<>();
         
         try {
-            // Get the credentials provider from the S3Client
-            var credentialsProvider = s3Client.serviceClientConfiguration().credentialsProvider();
+            // Get the credentials provider from the S3AsyncClient
+            var credentialsProvider = s3AsyncClient.serviceClientConfiguration().credentialsProvider();
             result.put("credentials-provider-type", credentialsProvider.getClass().getSimpleName());
             
             // Try to resolve actual credentials (don't log the actual keys for security)
             try {
-                // Use DefaultCredentialsProvider directly to get the same credentials the S3Client would use
+                // Use DefaultCredentialsProvider directly to get the same credentials the S3AsyncClient would use
                 DefaultCredentialsProvider defaultProvider = DefaultCredentialsProvider.create();
                 AwsCredentials creds = defaultProvider.resolveCredentials();
                 result.put("credential-type", creds.getClass().getSimpleName());
@@ -172,7 +232,7 @@ public class S3Service {
             
             // Additional debug info
             result.put("bucket-name", this.bucketName);
-            result.put("s3-client-region", s3Client.serviceClientConfiguration().region().id());
+            result.put("s3-client-region", s3AsyncClient.serviceClientConfiguration().region().id());
             
         } catch (Exception e) {
             result.put("debug-error", e.getMessage());

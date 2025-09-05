@@ -51,6 +51,8 @@ public class S3Controller {
 
         try {
             String etag = s3Service.uploadFile(file);
+            logger.info("File uploaded successfully using S3Service");
+            
             String fileName = file.getOriginalFilename();
 
             response.put("success", true);
@@ -79,6 +81,8 @@ public class S3Controller {
     public ResponseEntity<?> listFiles() {
         try {
             List<String> files = s3Service.listFiles();
+            logger.info("Files listed successfully using S3Service");
+            
             return ResponseEntity.ok(files);
         } catch (Exception e) {
             logger.error("Failed to list files", e);

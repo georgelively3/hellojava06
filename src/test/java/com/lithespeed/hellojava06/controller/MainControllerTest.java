@@ -47,9 +47,9 @@ class MainControllerTest {
     @MockBean
     private S3Service s3Service;
 
-    // Mock the S3Client bean to prevent dependency injection issues
+    // Mock the S3AsyncClient bean to prevent dependency injection issues
     @MockBean
-    private software.amazon.awssdk.services.s3.S3Client s3Client;
+    private software.amazon.awssdk.services.s3.S3AsyncClient s3AsyncClient;
 
     @Autowired
     private ObjectMapper objectMapper;
