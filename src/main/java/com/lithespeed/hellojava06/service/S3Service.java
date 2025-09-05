@@ -79,7 +79,8 @@ public class S3Service {
                     .build();
 
             AsyncRequestBody requestBody = AsyncRequestBody.fromInputStream(
-                file.getInputStream(), file.getSize(), null);
+                file.getInputStream(), file.getSize(), 
+                java.util.concurrent.ForkJoinPool.commonPool());
 
             logger.info("Starting async upload for key: {} to bucket: {}", key, bucketName);
 
