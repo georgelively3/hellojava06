@@ -9,7 +9,7 @@ RUN mkdir /app
 COPY --from=builder /home/gradle/src/build/libs/*.jar /app/hellojava06.jar
 
 # Add environment variable defaults for safer startup
-ENV SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-fake-s3}
+ENV SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-default}
 ENV DB_PORT=${DB_PORT:-5432}
 ENV DB_NAME=${DB_NAME:-hellojava06}
 

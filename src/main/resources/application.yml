@@ -42,6 +42,7 @@ aws:
     region: ${AWS_REGION:us-east-1}
     bucket-name: ${LocalBucketName:pm3547b}
     use-iam-role: ${AWS_USE_IAM_ROLE:true}
+    endpoint: ${AWS_S3_ENDPOINT:}
 
 ---
 # Test profile configuration
