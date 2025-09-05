@@ -197,4 +197,27 @@ class S3ControllerTest {
                                 .andExpect(jsonPath("$.has-access-key").value("true"))
                                 .andExpect(jsonPath("$.is-session-credentials").value("true"));
         }
+
+        @Test
+        @DisplayName("Coverage: debug credentials exception")
+        void debugCredentialsException() throws Exception {
+                when(s3Service.debugCredentials()).thenThrow(new RuntimeException("Test error"));
+                
+                mockMvc.perform(get("/s3/debug/credentials"))
+                                .andExpect(status().isInternalServerError())
+                                .andExpect(jsonPath("$.error").value("Test error"));
+        }
+
+        @Test  
+        @DisplayName("Coverage: exception with cause")
+        void exceptionWithCause() throws Exception {
+                RuntimeException cause = new RuntimeException("Nested error");
+                RuntimeException main = new RuntimeException("Main error", cause);
+                when(s3Service.uploadFile(any())).thenThrow(main);
+                
+                mockMvc.perform(multipart("/s3/upload-file").file(testFile))
+                                .andExpect(status().isInternalServerError())
+                                .andExpect(jsonPath("$.causeType").value("RuntimeException"))
+                                .andExpect(jsonPath("$.causeMessage").value("Nested error"));
+        }
 }
