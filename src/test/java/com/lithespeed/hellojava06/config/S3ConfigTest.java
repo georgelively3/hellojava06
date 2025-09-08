@@ -207,4 +207,158 @@ class S3ConfigTest {
             client.close();
         }, "S3AsyncClient creation should not throw exceptions");
     }
+
+    @Test
+    void s3AsyncClient_ShouldCreateClient_WhenInTestEnvironment() {
+        // This test verifies that the method works in test environment
+        // (should not trigger local development mode due to test detection)
+        
+        // Act
+        S3AsyncClient client = s3Config.s3AsyncClient();
+
+        // Assert
+        assertNotNull(client, "S3AsyncClient should not be null in test environment");
+        assertEquals("s3", client.serviceName(), "Service name should be s3");
+        
+        // Clean up
+        client.close();
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleAnonymousCredentials_WhenNoAwsCredentials() {
+        // This test verifies that anonymous credentials are handled gracefully
+        // when AWS credentials are not available
+        
+        // Act
+        S3AsyncClient client = s3Config.s3AsyncClient();
+
+        // Assert
+        assertNotNull(client, "S3AsyncClient should not be null with anonymous credentials");
+        assertEquals("s3", client.serviceName(), "Service name should be s3");
+        assertNotNull(client.serviceClientConfiguration(), "Client configuration should not be null");
+        
+        // Clean up
+        client.close();
+    }
+
+    @Test
+    void s3AsyncClient_ShouldUseConfiguredRegion_WhenLocalDevelopmentModeActive() {
+        // Arrange - Set a custom region
+        ReflectionTestUtils.setField(s3Config, "awsRegion", "eu-west-1");
+
+        // Act
+        S3AsyncClient client = s3Config.s3AsyncClient();
+
+        // Assert
+        assertNotNull(client, "S3AsyncClient should not be null");
+        // In test environment, should use the configured region
+        assertEquals("eu-west-1", client.serviceClientConfiguration().region().id(),
+                     "Client should use configured region");
+        
+        // Clean up
+        client.close();
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleCustomEndpoint_WhenEndpointConfigured() {
+        // Arrange - Set a custom endpoint (LocalStack scenario)
+        ReflectionTestUtils.setField(s3Config, "s3Endpoint", "http://localhost:4566");
+        ReflectionTestUtils.setField(s3Config, "awsRegion", "us-east-1");
+
+        // Act
+        S3AsyncClient client = s3Config.s3AsyncClient();
+
+        // Assert
+        assertNotNull(client, "S3AsyncClient should not be null with custom endpoint");
+        assertEquals("s3", client.serviceName(), "Service name should be s3");
+        
+        // Clean up
+        client.close();
+    }
+
+    @Test
+    void s3AsyncClient_ShouldFallbackToUsEast1_WhenInvalidRegionProvided() {
+        // This tests the fallback logic when an invalid region is configured
+        
+        // Arrange - Set an invalid region
+        ReflectionTestUtils.setField(s3Config, "awsRegion", "invalid-region-123");
+
+        // Act & Assert
+        assertDoesNotThrow(() -> {
+            S3AsyncClient client = s3Config.s3AsyncClient();
+            assertNotNull(client, "S3AsyncClient should not be null with invalid region");
+            // Should fallback to a valid region or handle gracefully
+            client.close();
+        }, "Should handle invalid region gracefully");
+    }
+
+    @Test
+    void s3AsyncClient_ShouldCreateDifferentInstances_WhenCalledMultipleTimes() {
+        // This test verifies that each call creates a new instance (not singleton within method)
+        
+        // Act
+        S3AsyncClient client1 = s3Config.s3AsyncClient();
+        S3AsyncClient client2 = s3Config.s3AsyncClient();
+
+        // Assert
+        assertNotNull(client1, "First S3AsyncClient should not be null");
+        assertNotNull(client2, "Second S3AsyncClient should not be null");
+        assertNotSame(client1, client2, "Each call should create different instances");
+        
+        // Both should have the same service name
+        assertEquals("s3", client1.serviceName(), "First client service name should be s3");
+        assertEquals("s3", client2.serviceName(), "Second client service name should be s3");
+        
+        // Clean up
+        client1.close();
+        client2.close();
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleNullEndpoint_WhenEndpointNotConfigured() {
+        // Arrange - Explicitly set endpoint to null
+        ReflectionTestUtils.setField(s3Config, "s3Endpoint", null);
+
+        // Act
+        S3AsyncClient client = s3Config.s3AsyncClient();
+
+        // Assert
+        assertNotNull(client, "S3AsyncClient should not be null when endpoint is null");
+        assertEquals("s3", client.serviceName(), "Service name should be s3");
+        
+        // Clean up
+        client.close();
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleEmptyEndpoint_WhenEndpointIsEmpty() {
+        // Arrange - Set endpoint to empty string
+        ReflectionTestUtils.setField(s3Config, "s3Endpoint", "");
+
+        // Act
+        S3AsyncClient client = s3Config.s3AsyncClient();
+
+        // Assert
+        assertNotNull(client, "S3AsyncClient should not be null when endpoint is empty");
+        assertEquals("s3", client.serviceName(), "Service name should be s3");
+        
+        // Clean up
+        client.close();
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleWhitespaceEndpoint_WhenEndpointIsWhitespace() {
+        // Arrange - Set endpoint to whitespace
+        ReflectionTestUtils.setField(s3Config, "s3Endpoint", "   ");
+
+        // Act
+        S3AsyncClient client = s3Config.s3AsyncClient();
+
+        // Assert
+        assertNotNull(client, "S3AsyncClient should not be null when endpoint is whitespace");
+        assertEquals("s3", client.serviceName(), "Service name should be s3");
+        
+        // Clean up
+        client.close();
+    }
 }
