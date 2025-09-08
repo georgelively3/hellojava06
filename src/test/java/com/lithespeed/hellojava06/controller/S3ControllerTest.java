@@ -6,13 +6,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -28,14 +26,11 @@ class S3ControllerTest {
     @Mock
     private S3Service s3Service;
 
-    @Mock
-    private Environment environment;
-
     private S3Controller s3Controller;
 
     @BeforeEach
     void setUp() {
-        s3Controller = new S3Controller(s3Service, environment);
+        s3Controller = new S3Controller(s3Service);
     }
 
     @Test
@@ -163,27 +158,5 @@ class S3ControllerTest {
         assertNotNull(body);
     }
 
-    @Test
-    void getDebugCredentials_Success() throws Exception {
-        // Arrange
-        Map<String, String> credentials = new HashMap<>();
-        credentials.put("accessKeyId", "AKIAIOSFODNN7EXAMPLE");
-        credentials.put("region", "us-east-1");
-        credentials.put("provider", "DefaultCredentialsProvider");
-        
-        when(s3Service.debugCredentials()).thenReturn(credentials);
 
-        // Act
-        ResponseEntity<Map<String, String>> result = s3Controller.getDebugCredentials();
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        
-        Map<String, String> body = result.getBody();
-        assertNotNull(body);
-        assertEquals("AKIAIOSFODNN7EXAMPLE", body.get("accessKeyId"));
-        assertEquals("us-east-1", body.get("region"));
-        assertEquals("DefaultCredentialsProvider", body.get("provider"));
-    }
 }

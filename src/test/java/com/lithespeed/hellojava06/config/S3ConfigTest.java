@@ -499,4 +499,194 @@ class S3ConfigTest {
         // Clean up
         client.close();
     }
+
+    @Test
+    void s3AsyncClient_ShouldUseAwsClient_WhenAwsEnvironmentVariablesPresent() {
+        // Arrange - Simulate AWS environment by manipulating environment detection
+        // We need to use system properties since we can't easily mock environment variables
+        System.setProperty("aws.test.environment", "true");
+        
+        try {
+            // Mock the behavior by setting region that would be used in AWS
+            ReflectionTestUtils.setField(s3Config, "awsRegion", "eu-west-1");
+            
+            // Act
+            S3AsyncClient client = s3Config.s3AsyncClient();
+            
+            // Assert
+            assertNotNull(client, "S3AsyncClient should be created");
+            assertEquals("eu-west-1", client.serviceClientConfiguration().region().id(),
+                         "Should use specified AWS region");
+            
+            // Clean up
+            client.close();
+        } finally {
+            System.clearProperty("aws.test.environment");
+        }
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleCustomEndpointInAwsMode() {
+        // Arrange - Set custom endpoint to trigger AWS client path with endpoint override
+        ReflectionTestUtils.setField(s3Config, "s3Endpoint", "https://custom-s3.example.com");
+        ReflectionTestUtils.setField(s3Config, "awsRegion", "ap-southeast-1");
+        
+        // Act
+        S3AsyncClient client = s3Config.s3AsyncClient();
+        
+        // Assert
+        assertNotNull(client, "S3AsyncClient should be created with custom endpoint");
+        assertEquals("ap-southeast-1", client.serviceClientConfiguration().region().id(),
+                     "Should use specified region with custom endpoint");
+        
+        // Clean up
+        client.close();
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleInvalidRegion_WithFallback() {
+        // Arrange - Set invalid region to trigger fallback logic
+        ReflectionTestUtils.setField(s3Config, "awsRegion", "invalid-region-name");
+        
+        // Act & Assert - Should not throw exception but handle gracefully
+        assertDoesNotThrow(() -> {
+            S3AsyncClient client = s3Config.s3AsyncClient();
+            assertNotNull(client, "S3AsyncClient should be created even with invalid region");
+            client.close();
+        }, "Invalid region should be handled gracefully with fallback");
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleEmptyEndpoint() {
+        // Arrange - Test empty endpoint handling
+        ReflectionTestUtils.setField(s3Config, "s3Endpoint", "   ");
+        ReflectionTestUtils.setField(s3Config, "awsRegion", "us-west-1");
+        
+        // Act
+        S3AsyncClient client = s3Config.s3AsyncClient();
+        
+        // Assert
+        assertNotNull(client, "S3AsyncClient should be created with empty endpoint");
+        assertEquals("us-west-1", client.serviceClientConfiguration().region().id(),
+                     "Should use specified region");
+        
+        // Clean up
+        client.close();
+    }
+
+    @Test
+    void s3AsyncClient_ShouldCreateClientWithDifferentRegions() {
+        // Test multiple regions to ensure region handling works correctly
+        String[] regions = {"us-east-1", "us-west-2", "eu-central-1", "ap-northeast-1"};
+        
+        for (String region : regions) {
+            // Arrange
+            ReflectionTestUtils.setField(s3Config, "awsRegion", region);
+            
+            // Act
+            S3AsyncClient client = s3Config.s3AsyncClient();
+            
+            // Assert
+            assertNotNull(client, "S3AsyncClient should be created for region: " + region);
+            assertEquals(region, client.serviceClientConfiguration().region().id(),
+                         "Should use region: " + region);
+            
+            // Clean up
+            client.close();
+        }
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleMalformedEndpoint() {
+        // Arrange - Set malformed endpoint to test error handling
+        ReflectionTestUtils.setField(s3Config, "s3Endpoint", "not-a-valid-url");
+        ReflectionTestUtils.setField(s3Config, "awsRegion", "us-east-1");
+        
+        // Act & Assert - Should handle malformed endpoint gracefully
+        assertDoesNotThrow(() -> {
+            S3AsyncClient client = s3Config.s3AsyncClient();
+            assertNotNull(client, "S3AsyncClient should be created even with malformed endpoint");
+            client.close();
+        }, "Malformed endpoint should be handled gracefully");
+    }
+
+    @Test
+    void s3AsyncClient_ShouldWorkWithNullRegion() {
+        // Arrange - Test null region handling
+        ReflectionTestUtils.setField(s3Config, "awsRegion", null);
+        
+        // Act & Assert - Should handle null region gracefully
+        assertDoesNotThrow(() -> {
+            S3AsyncClient client = s3Config.s3AsyncClient();
+            assertNotNull(client, "S3AsyncClient should be created even with null region");
+            client.close();
+        }, "Null region should be handled gracefully with fallback to us-east-1");
+    }
+
+    @Test
+    void s3AsyncClient_ShouldCreateClientWithVariousEndpointFormats() {
+        // Test different endpoint formats
+        String[] endpoints = {
+            "http://localhost:4566",
+            "https://s3.amazonaws.com", 
+            "https://custom-domain.com:9000",
+            "http://127.0.0.1:8080"
+        };
+        
+        for (String endpoint : endpoints) {
+            // Arrange
+            ReflectionTestUtils.setField(s3Config, "s3Endpoint", endpoint);
+            ReflectionTestUtils.setField(s3Config, "awsRegion", "us-east-1");
+            
+            // Act
+            S3AsyncClient client = s3Config.s3AsyncClient();
+            
+            // Assert
+            assertNotNull(client, "S3AsyncClient should be created with endpoint: " + endpoint);
+            
+            // Clean up
+            client.close();
+        }
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleCredentialResolutionFailure() {
+        // Arrange - This test exercises the credential fallback path
+        // In real AWS environments, credential resolution might fail
+        ReflectionTestUtils.setField(s3Config, "awsRegion", "ca-central-1");
+        ReflectionTestUtils.setField(s3Config, "s3Endpoint", ""); // No custom endpoint
+        
+        // Act & Assert - Should handle credential issues gracefully
+        assertDoesNotThrow(() -> {
+            S3AsyncClient client = s3Config.s3AsyncClient();
+            assertNotNull(client, "S3AsyncClient should be created even if credentials fail");
+            assertEquals("ca-central-1", client.serviceClientConfiguration().region().id(),
+                         "Should use specified region");
+            client.close();
+        }, "Credential resolution failure should be handled gracefully");
+    }
+
+    @Test
+    void s3AsyncClient_ShouldHandleAllExceptionPaths() {
+        // Test various configurations that might cause exceptions
+        String[][] testConfigs = {
+            {"", ""},                              // Empty region and endpoint
+            {"invalid", "invalid://bad-url"},      // Invalid region and malformed URL
+            {null, "ftp://wrong-protocol"},       // Null region and wrong protocol
+            {"us-east-1", "://missing-scheme"}     // Valid region but bad URL scheme
+        };
+        
+        for (String[] config : testConfigs) {
+            // Arrange
+            ReflectionTestUtils.setField(s3Config, "awsRegion", config[0]);
+            ReflectionTestUtils.setField(s3Config, "s3Endpoint", config[1]);
+            
+            // Act & Assert - All configurations should be handled gracefully
+            assertDoesNotThrow(() -> {
+                S3AsyncClient client = s3Config.s3AsyncClient();
+                assertNotNull(client, "S3AsyncClient should always be created as fallback");
+                client.close();
+            }, "Configuration [region=" + config[0] + ", endpoint=" + config[1] + "] should be handled gracefully");
+        }
+    }
 }

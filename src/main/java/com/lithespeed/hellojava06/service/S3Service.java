@@ -6,8 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
@@ -15,9 +13,7 @@ import software.amazon.awssdk.services.s3.model.*;
 import javax.annotation.processing.Generated;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -123,56 +119,5 @@ public class S3Service {
                     logger.error("Failed to async list files from bucket: {}", bucketName, throwable);
                     throw new RuntimeException("Failed to list files from S3", throwable);
                 });
-    }
-
-    /**
-     * Debug method to show what credentials the S3AsyncClient is actually using
-     * Useful for debugging AWS authentication issues in different environments
-     */
-    public Map<String, String> debugCredentials() {
-        Map<String, String> result = new HashMap<>();
-        
-        try {
-            // Get the credentials provider from the S3AsyncClient
-            var credentialsProvider = s3AsyncClient.serviceClientConfiguration().credentialsProvider();
-            result.put("credentials-provider-type", credentialsProvider.getClass().getSimpleName());
-            
-            // Try to resolve actual credentials (don't log the actual keys for security)
-            try {
-                // Use DefaultCredentialsProvider directly to get the same credentials the S3AsyncClient would use
-                DefaultCredentialsProvider defaultProvider = DefaultCredentialsProvider.create();
-                AwsCredentials creds = defaultProvider.resolveCredentials();
-                result.put("credential-type", creds.getClass().getSimpleName());
-                result.put("has-access-key", creds.accessKeyId() != null && !creds.accessKeyId().isEmpty() ? "true" : "false");
-                result.put("access-key-prefix", creds.accessKeyId() != null && creds.accessKeyId().length() > 4 
-                    ? creds.accessKeyId().substring(0, 4) + "****" : "null");
-                
-                // Check if it's a session credentials (indicates IAM role/STS)
-                if (creds instanceof software.amazon.awssdk.auth.credentials.AwsSessionCredentials) {
-                    software.amazon.awssdk.auth.credentials.AwsSessionCredentials sessionCreds = 
-                        (software.amazon.awssdk.auth.credentials.AwsSessionCredentials) creds;
-                    result.put("has-session-token", sessionCreds.sessionToken() != null ? "true" : "false");
-                    result.put("session-token-prefix", sessionCreds.sessionToken() != null && sessionCreds.sessionToken().length() > 10
-                        ? sessionCreds.sessionToken().substring(0, 10) + "****" : "null");
-                    result.put("is-session-credentials", "true");
-                } else {
-                    result.put("is-session-credentials", "false");
-                }
-                
-            } catch (Exception credErr) {
-                result.put("credential-resolution-error", credErr.getMessage());
-            }
-            
-            // Additional debug info
-            result.put("bucket-name", this.bucketName);
-            result.put("s3-client-region", s3AsyncClient.serviceClientConfiguration().region().id());
-            
-        } catch (Exception e) {
-            result.put("debug-error", e.getMessage());
-            result.put("error-type", e.getClass().getSimpleName());
-        }
-        
-        logger.info("S3Service credentials debug: {}", result);
-        return result;
     }
 }

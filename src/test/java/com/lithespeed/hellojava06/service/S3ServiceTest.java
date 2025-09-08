@@ -14,13 +14,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,15 +42,6 @@ class S3ServiceTest {
     void constructor_ShouldCreateService() {
         // Act & Assert
         assertNotNull(s3Service);
-    }
-
-    @Test
-    void debugCredentials_ShouldNotThrow() {
-        // Act & Assert
-        assertDoesNotThrow(() -> {
-            Map<String, String> result = s3Service.debugCredentials();
-            assertNotNull(result);
-        });
     }
 
     // Upload File Tests
