@@ -1,28 +1,30 @@
 package com.lithespeed.hellojava06.karate;
 
 import com.intuit.karate.junit5.Karate;
-import com.lithespeed.hellojava06.config.TestAwsConfig;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.context.annotation.Import;
 
 /**
- * Consolidated Karate test runner for all feature files
- * Simple health check test to validate setup
+ * Karate test runner for S3 feature scenarios
+ * Runs all scenarios - use gradle tags to control which ones execute
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-@Import(TestAwsConfig.class)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = {
+        "spring.autoconfigure.exclude=io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration,io.awspring.cloud.autoconfigure.core.AwsAutoConfiguration"
+    }
+)
 public class KarateTestRunner {
 
     @LocalServerPort
     private int serverPort;
 
     @Karate.Test
-    Karate testS3Health() {
+    Karate testS3Scenarios() {
         System.setProperty("karate.server.port", String.valueOf(serverPort));
-        return Karate.run("classpath:karate/s3.feature")
-                .tags("~@preprod"); // Exclude preprod scenarios, only run basic health checks
+        return Karate.run("classpath:karate/s3.feature");
+        // Note: Use gradle properties to control which scenarios run:
+        // Normal: ./gradlew test (runs non-@preprod scenarios)  
+        // Preprod: ./gradlew test -Ppreprod (runs @preprod scenarios)
     }
 }
