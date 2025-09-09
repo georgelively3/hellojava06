@@ -10,12 +10,12 @@ import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
 
-import java.io.ByteArrayInputStream;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,8 +34,12 @@ class S3ServiceTest {
     private final String bucketName = "test-bucket";
 
     @BeforeEach
-    void setUp() {
-        s3Service = new S3Service(s3AsyncClient, bucketName);
+    void setUp() throws Exception {
+        s3Service = new S3Service(s3AsyncClient);
+        // Use reflection to set the bucket name since we removed the test constructor
+        java.lang.reflect.Field bucketField = S3Service.class.getDeclaredField("bucketName");
+        bucketField.setAccessible(true);
+        bucketField.set(s3Service, bucketName);
     }
 
     @Test
@@ -52,11 +56,10 @@ class S3ServiceTest {
         String entityId = "user123";
         byte[] content = "test file content".getBytes();
         
-        when(multipartFile.isEmpty()).thenReturn(false);
         when(multipartFile.getOriginalFilename()).thenReturn("test.txt");
         when(multipartFile.getContentType()).thenReturn("text/plain");
         when(multipartFile.getSize()).thenReturn((long) content.length);
-        when(multipartFile.getInputStream()).thenReturn(new ByteArrayInputStream(content));
+        when(multipartFile.getBytes()).thenReturn(content);
 
         PutObjectResponse response = PutObjectResponse.builder()
                 .eTag("test-etag-12345")
@@ -81,18 +84,35 @@ class S3ServiceTest {
     }
 
     @Test
-    void uploadFileAsync_EmptyFile() {
+    void uploadFileAsync_EmptyFile() throws IOException {
         // Arrange
         String entityType = "uploads";
         String entityId = "user123";
+        byte[] emptyContent = new byte[0];
         
-        when(multipartFile.isEmpty()).thenReturn(true);
+        when(multipartFile.getOriginalFilename()).thenReturn("empty.txt");
+        when(multipartFile.getContentType()).thenReturn("text/plain");
+        when(multipartFile.getSize()).thenReturn(0L);
+        when(multipartFile.getBytes()).thenReturn(emptyContent);
 
-        // Act & Assert
-        CompletableFuture<String> result = s3Service.uploadFileAsync(entityType, entityId, multipartFile);
+        PutObjectResponse response = PutObjectResponse.builder()
+                .eTag("empty-file-etag")
+                .build();
         
-        assertThrows(CompletionException.class, result::join);
-        verify(s3AsyncClient, never()).putObject(any(PutObjectRequest.class), any(AsyncRequestBody.class));
+        when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(AsyncRequestBody.class)))
+                .thenReturn(CompletableFuture.completedFuture(response));
+
+        // Act
+        CompletableFuture<String> result = s3Service.uploadFileAsync(entityType, entityId, multipartFile);
+
+        // Assert - Empty files are now allowed to be uploaded
+        assertNotNull(result);
+        String key = result.join();
+        assertNotNull(key);
+        assertTrue(key.startsWith("uploads/user123/"));
+        assertTrue(key.endsWith(".txt"));
+        
+        verify(s3AsyncClient).putObject(any(PutObjectRequest.class), any(AsyncRequestBody.class));
     }
 
     @Test
@@ -102,11 +122,10 @@ class S3ServiceTest {
         String entityId = "user123";
         byte[] content = "test file content".getBytes();
         
-        when(multipartFile.isEmpty()).thenReturn(false);
         when(multipartFile.getOriginalFilename()).thenReturn("testfile"); // No extension
         when(multipartFile.getContentType()).thenReturn("application/octet-stream");
         when(multipartFile.getSize()).thenReturn((long) content.length);
-        when(multipartFile.getInputStream()).thenReturn(new ByteArrayInputStream(content));
+        when(multipartFile.getBytes()).thenReturn(content);
 
         PutObjectResponse response = PutObjectResponse.builder()
                 .eTag("test-etag-12345")
@@ -137,11 +156,10 @@ class S3ServiceTest {
         String entityId = "user123";
         byte[] content = "test file content".getBytes();
         
-        when(multipartFile.isEmpty()).thenReturn(false);
         when(multipartFile.getOriginalFilename()).thenReturn(null);
         when(multipartFile.getContentType()).thenReturn("application/octet-stream");
         when(multipartFile.getSize()).thenReturn((long) content.length);
-        when(multipartFile.getInputStream()).thenReturn(new ByteArrayInputStream(content));
+        when(multipartFile.getBytes()).thenReturn(content);
 
         PutObjectResponse response = PutObjectResponse.builder()
                 .eTag("test-etag-12345")
@@ -164,16 +182,15 @@ class S3ServiceTest {
     }
 
     @Test
-    void uploadFileAsync_IOExceptionOnInputStream() throws IOException {
+    void uploadFileAsync_IOExceptionOnGetBytes() throws IOException {
         // Arrange
         String entityType = "uploads";
         String entityId = "user123";
         
-        when(multipartFile.isEmpty()).thenReturn(false);
         when(multipartFile.getOriginalFilename()).thenReturn("test.txt");
         when(multipartFile.getContentType()).thenReturn("text/plain");
         when(multipartFile.getSize()).thenReturn(100L);
-        when(multipartFile.getInputStream()).thenThrow(new IOException("Cannot read file"));
+        when(multipartFile.getBytes()).thenThrow(new IOException("Cannot read file"));
 
         // Act & Assert
         CompletableFuture<String> result = s3Service.uploadFileAsync(entityType, entityId, multipartFile);
@@ -189,11 +206,10 @@ class S3ServiceTest {
         String entityId = "user123";
         byte[] content = "test file content".getBytes();
         
-        when(multipartFile.isEmpty()).thenReturn(false);
         when(multipartFile.getOriginalFilename()).thenReturn("test.txt");
         when(multipartFile.getContentType()).thenReturn("text/plain");
         when(multipartFile.getSize()).thenReturn((long) content.length);
-        when(multipartFile.getInputStream()).thenReturn(new ByteArrayInputStream(content));
+        when(multipartFile.getBytes()).thenReturn(content);
 
         CompletableFuture<PutObjectResponse> failedFuture = new CompletableFuture<>();
         failedFuture.completeExceptionally(S3Exception.builder()

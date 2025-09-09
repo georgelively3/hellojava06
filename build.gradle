@@ -36,9 +36,11 @@ dependencies {
     // Flyway
     implementation 'org.flywaydb:flyway-core'
     
-    // AWS S3
-    implementation platform('software.amazon.awssdk:bom:2.21.29')
-    implementation 'software.amazon.awssdk:s3'
+    // AWS S3 with Spring Cloud AWS (simpler approach)
+    implementation platform("io.awspring.cloud:spring-cloud-aws-dependencies:3.0.3")
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3'
+    implementation 'software.amazon.awssdk:sts'
+    implementation 'software.amazon.awssdk:aws-crt-client'
     
     // Swagger/OpenAPI for API documentation
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
