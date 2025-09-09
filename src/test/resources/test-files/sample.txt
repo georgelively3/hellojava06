@@ -1,0 +1,6 @@
+This is a sample text file for testing S3 upload functionality.
+It contains multiple lines of text to verify that file content is preserved.
+Line 3: Testing special characters: !@#$%^&*()
+Line 4: Testing numbers: 1234567890
+Line 5: Testing unicode: áéíóú ñ ü
+Final line for testing.

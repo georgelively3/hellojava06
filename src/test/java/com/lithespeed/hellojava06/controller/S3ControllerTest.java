@@ -158,5 +158,17 @@ class S3ControllerTest {
         assertNotNull(body);
     }
 
+    @Test
+    void healthCheck_ShouldReturnUpStatus() {
+        // Act
+        Map<String, String> result = s3Controller.healthCheck();
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("UP", result.get("status"));
+        assertTrue(result.containsKey("status"));
+        assertEquals(1, result.size()); // Should only contain status field
+    }
+
 
 }
