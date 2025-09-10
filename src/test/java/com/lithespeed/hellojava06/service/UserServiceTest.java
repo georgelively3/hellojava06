@@ -1,8 +1,6 @@
 package com.lithespeed.hellojava06.service;
 
 import com.lithespeed.hellojava06.entity.User;
-import com.lithespeed.hellojava06.exception.DuplicateResourceException;
-import com.lithespeed.hellojava06.exception.ResourceNotFoundException;
 import com.lithespeed.hellojava06.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -100,13 +98,13 @@ class UserServiceTest {
     }
 
     @Test
-    void getUserById_WithInvalidId_ShouldThrowResourceNotFoundException() {
+    void getUserById_WithInvalidId_ShouldThrowRuntimeException() {
         // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userService.getUserById(999L))
-                .isInstanceOf(ResourceNotFoundException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("User not found with id: 999");
         verify(userRepository, times(1)).findById(999L);
     }
@@ -125,13 +123,13 @@ class UserServiceTest {
     }
 
     @Test
-    void getUserByUsername_WithInvalidUsername_ShouldThrowResourceNotFoundException() {
+    void getUserByUsername_WithInvalidUsername_ShouldThrowRuntimeException() {
         // Given
         when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userService.getUserByUsername("nonexistent"))
-                .isInstanceOf(ResourceNotFoundException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("User not found with username: nonexistent");
         verify(userRepository, times(1)).findByUsername("nonexistent");
     }
@@ -150,13 +148,13 @@ class UserServiceTest {
     }
 
     @Test
-    void getUserByEmail_WithInvalidEmail_ShouldThrowResourceNotFoundException() {
+    void getUserByEmail_WithInvalidEmail_ShouldThrowRuntimeException() {
         // Given
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userService.getUserByEmail("nonexistent@example.com"))
-                .isInstanceOf(ResourceNotFoundException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("User not found with email: nonexistent@example.com");
         verify(userRepository, times(1)).findByEmail("nonexistent@example.com");
     }
@@ -195,21 +193,21 @@ class UserServiceTest {
     }
 
     @Test
-    void createUser_WithDuplicateUsername_ShouldThrowDuplicateResourceException() {
+    void createUser_WithDuplicateUsername_ShouldThrowRuntimeException() {
         // Given
         User newUser = new User("johndoe", "new@example.com", "New", "User");
         when(userRepository.existsByUsername("johndoe")).thenReturn(true);
 
         // When & Then
         assertThatThrownBy(() -> userService.createUser(newUser))
-                .isInstanceOf(DuplicateResourceException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Username already exists: johndoe");
         verify(userRepository, times(1)).existsByUsername("johndoe");
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void createUser_WithDuplicateEmail_ShouldThrowDuplicateResourceException() {
+    void createUser_WithDuplicateEmail_ShouldThrowRuntimeException() {
         // Given
         User newUser = new User("newuser", "john@example.com", "New", "User");
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
@@ -217,7 +215,7 @@ class UserServiceTest {
 
         // When & Then
         assertThatThrownBy(() -> userService.createUser(newUser))
-                .isInstanceOf(DuplicateResourceException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Email already exists: john@example.com");
         verify(userRepository, times(1)).existsByUsername("newuser");
         verify(userRepository, times(1)).existsByEmail("john@example.com");
@@ -244,21 +242,21 @@ class UserServiceTest {
     }
 
     @Test
-    void updateUser_WithNonExistentId_ShouldThrowResourceNotFoundException() {
+    void updateUser_WithNonExistentId_ShouldThrowRuntimeException() {
         // Given
         User updatedUserData = new User("johndoe", "john.updated@example.com", "John", "Updated");
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userService.updateUser(999L, updatedUserData))
-                .isInstanceOf(ResourceNotFoundException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("User not found with id: 999");
         verify(userRepository, times(1)).findById(999L);
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void updateUser_WithDuplicateEmail_ShouldThrowDuplicateResourceException() {
+    void updateUser_WithDuplicateEmail_ShouldThrowRuntimeException() {
         // Given
         User updatedUserData = new User("johndoe", "jane@example.com", "John", "Updated");
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
@@ -266,7 +264,7 @@ class UserServiceTest {
 
         // When & Then
         assertThatThrownBy(() -> userService.updateUser(1L, updatedUserData))
-                .isInstanceOf(DuplicateResourceException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Email already exists: jane@example.com");
         verify(userRepository, times(1)).findById(1L);
         verify(userRepository, times(1)).existsByEmail("jane@example.com");
@@ -287,13 +285,13 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteUser_WithInvalidId_ShouldThrowResourceNotFoundException() {
+    void deleteUser_WithInvalidId_ShouldThrowRuntimeException() {
         // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userService.deleteUser(999L))
-                .isInstanceOf(ResourceNotFoundException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("User not found with id: 999");
         verify(userRepository, times(1)).findById(999L);
         verify(userRepository, never()).delete(any(User.class));

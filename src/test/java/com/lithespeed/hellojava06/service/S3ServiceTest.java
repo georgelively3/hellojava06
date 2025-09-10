@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -14,6 +15,7 @@ import software.amazon.awssdk.services.s3.model.*;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -317,5 +319,151 @@ class S3ServiceTest {
         verify(s3AsyncClient).listObjectsV2(argThat((ListObjectsV2Request request) -> 
             bucketName.equals(request.bucket())
         ));
+    }
+
+    // Business Logic Tests
+    @Test
+    void processFileUpload_Success() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file", 
+                "test.txt", 
+                "text/plain", 
+                "test content".getBytes());
+
+        PutObjectResponse putResponse = PutObjectResponse.builder().build();
+        when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(AsyncRequestBody.class)))
+                .thenReturn(CompletableFuture.completedFuture(putResponse));
+
+        // Act
+        CompletableFuture<Map<String, Object>> result = s3Service.processFileUpload(file);
+
+        // Assert
+        assertNotNull(result);
+        Map<String, Object> response = result.join();
+        
+        assertEquals(true, response.get("success"));
+        assertEquals("File uploaded successfully", response.get("message"));
+        assertEquals("test.txt", response.get("fileName"));
+        assertEquals("text/plain", response.get("contentType"));
+        assertEquals(12L, response.get("size")); // "test content".getBytes().length
+        assertNotNull(response.get("etag"));
+    }
+
+    @Test
+    void processFileUpload_Failure() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file", 
+                "test.txt", 
+                "text/plain", 
+                "test content".getBytes());
+
+        CompletableFuture<PutObjectResponse> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new RuntimeException("S3 upload failed"));
+        
+        when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(AsyncRequestBody.class)))
+                .thenReturn(failedFuture);
+
+        // Act
+        CompletableFuture<Map<String, Object>> result = s3Service.processFileUpload(file);
+
+        // Assert
+        assertNotNull(result);
+        Map<String, Object> response = result.join();
+        
+        assertEquals(false, response.get("success"));
+        assertEquals("upload file to S3", response.get("operation"));
+        assertNotNull(response.get("message"));
+        assertNotNull(response.get("timestamp"));
+    }
+
+    @Test
+    void processFileList_Success() throws Exception {
+        // Arrange
+        List<S3Object> s3Objects = Arrays.asList(
+                S3Object.builder().key("file1.txt").build(),
+                S3Object.builder().key("file2.txt").build(),
+                S3Object.builder().key("file3.jpg").build()
+        );
+        
+        ListObjectsV2Response listResponse = ListObjectsV2Response.builder()
+                .contents(s3Objects)
+                .build();
+                
+        when(s3AsyncClient.listObjectsV2(any(ListObjectsV2Request.class)))
+                .thenReturn(CompletableFuture.completedFuture(listResponse));
+
+        // Act
+        CompletableFuture<Map<String, Object>> result = s3Service.processFileList();
+
+        // Assert
+        assertNotNull(result);
+        Map<String, Object> response = result.join();
+        
+        assertEquals(true, response.get("success"));
+        assertEquals(3, response.get("count"));
+        
+        @SuppressWarnings("unchecked")
+        List<String> files = (List<String>) response.get("files");
+        assertEquals(3, files.size());
+        assertTrue(files.contains("file1.txt"));
+        assertTrue(files.contains("file2.txt"));
+        assertTrue(files.contains("file3.jpg"));
+    }
+
+    @Test
+    void processFileList_Failure() throws Exception {
+        // Arrange
+        CompletableFuture<ListObjectsV2Response> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new RuntimeException("S3 list failed"));
+        
+        when(s3AsyncClient.listObjectsV2(any(ListObjectsV2Request.class)))
+                .thenReturn(failedFuture);
+
+        // Act
+        CompletableFuture<Map<String, Object>> result = s3Service.processFileList();
+
+        // Assert
+        assertNotNull(result);
+        Map<String, Object> response = result.join();
+        
+        assertEquals(false, response.get("success"));
+        assertEquals("list files from S3", response.get("operation"));
+        assertNotNull(response.get("message"));
+        assertNotNull(response.get("timestamp"));
+    }
+
+    @Test
+    void generateFileId_ShouldReturnUniqueId() {
+        // Act
+        String id1 = s3Service.generateFileId();
+        String id2 = s3Service.generateFileId();
+
+        // Assert
+        assertNotNull(id1);
+        assertNotNull(id2);
+        assertNotEquals(id1, id2); // Should be unique
+        assertTrue(id1.length() > 0);
+        assertTrue(id2.length() > 0);
+    }
+
+    @Test
+    void createErrorResponse_ShouldCreateDetailedError() {
+        // Arrange
+        Exception testException = new RuntimeException("Test error message");
+        
+        // Act
+        Map<String, Object> response = s3Service.createErrorResponse("test operation", testException, "test context");
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(false, response.get("success"));
+        assertEquals("test operation", response.get("operation"));
+        assertEquals("RuntimeException", response.get("exceptionType"));
+        assertEquals("Test error message", response.get("message"));
+        assertEquals("test context", response.get("context"));
+        assertNotNull(response.get("timestamp"));
+        assertNotNull(response.get("stackTrace"));
     }
 }

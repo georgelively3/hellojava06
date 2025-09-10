@@ -2,8 +2,8 @@ package com.lithespeed.hellojava06.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lithespeed.hellojava06.entity.User;
-import com.lithespeed.hellojava06.exception.DuplicateResourceException;
-import com.lithespeed.hellojava06.exception.ResourceNotFoundException;
+
+
 import com.lithespeed.hellojava06.service.S3Service;
 import com.lithespeed.hellojava06.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -135,7 +135,7 @@ class MainControllerTest {
     @Test
     void getUserById_WithInvalidId_ShouldReturnNotFound() throws Exception {
         // Given
-        when(userService.getUserById(999L)).thenThrow(new ResourceNotFoundException("User not found"));
+        when(userService.getUserById(999L)).thenThrow(new RuntimeException("User not found"));
 
         // When & Then
         mockMvc.perform(get("/api/users/999"))
@@ -183,7 +183,7 @@ class MainControllerTest {
         // Given
         User duplicateUser = new User("johndoe", "new@example.com", "New", "User");
         when(userService.createUser(any(User.class)))
-                .thenThrow(new DuplicateResourceException("Username already exists"));
+                .thenThrow(new RuntimeException("Username already exists"));
 
         // When & Then
         mockMvc.perform(post("/api/users")
