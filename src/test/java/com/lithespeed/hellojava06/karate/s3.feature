@@ -1,7 +1,8 @@
 Feature: S3 Controller Operations
 
 Background:
-  * url 'http://localhost:' + karate.properties['karate.server.port']
+  * url baseUrl
+  * header Accept = 'application/json'
 
 Scenario: Verify S3 controller health endpoint is accessible
   Given path 's3/health'

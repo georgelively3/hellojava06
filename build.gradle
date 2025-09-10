@@ -145,32 +145,7 @@ jacocoTestCoverageVerification {
 
 check.dependsOn jacocoTestCoverageVerification
 
-// Integration tests - S3 scenarios only run in preprod environment
-task integrationTest(type: Test) {
-    description = 'Run integration tests - use -Ppreprod for S3 testing against real AWS'
-    group = 'verification'
-    useJUnitPlatform()
-    
-    include '**/karate/**'
-    include '**/integration/**'
-    
-    jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
-    jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
-    systemProperty 'file.encoding', 'UTF-8'
-    
-    // Only run S3 scenarios in preprod where AWS credentials are available
-    if (project.hasProperty('preprod')) {
-        systemProperty 'karate.options', '--tags @preprod'
-        systemProperty 'spring.profiles.active', 'preprod'
-    } else {
-        // Skip S3 scenarios in local development - run non-S3 tests only
-        enabled = false  // Don't run integration tests locally
-        println "Skipping integration tests - use -Ppreprod to run S3 scenarios against real AWS"
-    }
-    
-    shouldRunAfter test
-    finalizedBy jacocoTestReport
-}
+
 
 // Unit tests only (no Docker required)
 task unitTest(type: Test) {
@@ -189,9 +164,9 @@ task unitTest(type: Test) {
     systemProperty 'file.encoding', 'UTF-8'
 }
 
-// Integration tests for INT environment (includes health check via Karate)
+// Integration tests for INT environment (excludes @preprod scenarios)
 task intTest(type: Test) {
-    description = 'Integration tests including health check endpoint'
+    description = 'Integration tests including health check endpoint (excludes @preprod)'
     group = 'verification'
     
     useJUnitPlatform()
@@ -199,6 +174,7 @@ task intTest(type: Test) {
     
     systemProperty 'spring.profiles.active', 'test'
     systemProperty 'file.encoding', 'UTF-8'
+    systemProperty 'karate.options', '--tags ~@preprod'  // Exclude @preprod scenarios
     
     testLogging {
         events "passed", "skipped", "failed"
@@ -209,16 +185,17 @@ task intTest(type: Test) {
     finalizedBy jacocoTestReport
 }
 
-// Integration tests for PREPROD environment (includes S3 tests with real AWS)
+// Integration tests for PREPROD environment (only @preprod scenarios with real AWS)
 task preprodTest(type: Test) {
-    description = 'Integration tests for PREPROD with real dependencies'
+    description = 'Integration tests for PREPROD with real S3 dependencies'
     group = 'verification'
     useJUnitPlatform()
     
-    include '**/PreprodKarateTestRunner.class'
+    include '**/KarateTestRunner.class'  // Same runner, different tags
     
     systemProperty 'spring.profiles.active', 'preprod'  // Use preprod profile
     systemProperty 'file.encoding', 'UTF-8'
+    systemProperty 'karate.options', '--tags @preprod'  // Only @preprod scenarios
     
     testLogging {
         events "passed", "skipped", "failed"

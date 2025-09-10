@@ -11,7 +11,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
-        "spring.autoconfigure.exclude=io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration,io.awspring.cloud.autoconfigure.core.AwsAutoConfiguration"
+        "spring.autoconfigure.exclude=io.awspring.cloud.autoconfigure.core.AwsAutoConfiguration,io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration"
     }
 )
 public class KarateTestRunner {
