@@ -188,4 +188,153 @@ class S3ControllerTest {
                 assertEquals(1, result.size()); // Should only contain status field
         }
 
+        @Test
+        void deleteFile_Success() throws Exception {
+                // Arrange
+                String key = "test-file.txt";
+                when(s3Service.deleteFileAsync(key))
+                                .thenReturn(CompletableFuture.completedFuture(key));
+
+                // Act
+                CompletableFuture<ResponseEntity<String>> result = s3Controller.deleteFile(key);
+
+                // Assert
+                assertNotNull(result);
+                ResponseEntity<String> response = result.join();
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals("File deleted successfully: " + key, response.getBody());
+        }
+
+        @Test
+        void deleteFile_ServiceFailure() throws Exception {
+                // Arrange
+                String key = "test-file.txt";
+                CompletableFuture<String> failedFuture = new CompletableFuture<>();
+                failedFuture.completeExceptionally(new RuntimeException("Delete failed"));
+
+                when(s3Service.deleteFileAsync(key)).thenReturn(failedFuture);
+
+                // Act
+                CompletableFuture<ResponseEntity<String>> result = s3Controller.deleteFile(key);
+
+                // Assert
+                assertNotNull(result);
+                ResponseEntity<String> response = result.join();
+                assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertTrue(response.getBody().contains("Failed to delete file"));
+        }
+
+        @Test
+        void fileExists_FileExists() throws Exception {
+                // Arrange
+                String key = "existing-file.txt";
+                when(s3Service.fileExistsAsync(key))
+                                .thenReturn(CompletableFuture.completedFuture(true));
+
+                // Act
+                CompletableFuture<ResponseEntity<Boolean>> result = s3Controller.fileExists(key);
+
+                // Assert
+                assertNotNull(result);
+                ResponseEntity<Boolean> response = result.join();
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(Boolean.TRUE, response.getBody());
+        }
+
+        @Test
+        void fileExists_FileDoesNotExist() throws Exception {
+                // Arrange
+                String key = "nonexistent-file.txt";
+                when(s3Service.fileExistsAsync(key))
+                                .thenReturn(CompletableFuture.completedFuture(false));
+
+                // Act
+                CompletableFuture<ResponseEntity<Boolean>> result = s3Controller.fileExists(key);
+
+                // Assert
+                assertNotNull(result);
+                ResponseEntity<Boolean> response = result.join();
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertEquals(Boolean.FALSE, response.getBody());
+        }
+
+        @Test
+        void uploadFile_Success() throws Exception {
+                // Arrange
+                MockMultipartFile file = new MockMultipartFile(
+                                "file",
+                                "test.txt",
+                                "text/plain",
+                                "test content".getBytes());
+                String key = "uploads/test.txt";
+
+                Map<String, Object> serviceResponse = new HashMap<>();
+                serviceResponse.put("success", true);
+                serviceResponse.put("message", "File uploaded successfully");
+
+                when(s3Service.processFileUpload(any()))
+                                .thenReturn(CompletableFuture.completedFuture(serviceResponse));
+
+                // Act
+                CompletableFuture<ResponseEntity<String>> result = s3Controller.uploadFile(file, key);
+
+                // Assert
+                assertNotNull(result);
+                ResponseEntity<String> response = result.join();
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals("File uploaded successfully", response.getBody());
+        }
+
+        @Test
+        void uploadFile_EmptyFile() throws Exception {
+                // Arrange
+                MockMultipartFile file = new MockMultipartFile(
+                                "file",
+                                "test.txt",
+                                "text/plain",
+                                "".getBytes()); // Empty file
+                String key = "uploads/test.txt";
+
+                // Act
+                CompletableFuture<ResponseEntity<String>> result = s3Controller.uploadFile(file, key);
+
+                // Assert
+                assertNotNull(result);
+                ResponseEntity<String> response = result.join();
+                assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+                assertEquals("Please select a file to upload", response.getBody());
+        }
+
+        @Test
+        void uploadFile_ServiceFailure() throws Exception {
+                // Arrange
+                MockMultipartFile file = new MockMultipartFile(
+                                "file",
+                                "test.txt",
+                                "text/plain",
+                                "test content".getBytes());
+                String key = "uploads/test.txt";
+
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Upload failed");
+
+                when(s3Service.processFileUpload(any()))
+                                .thenReturn(CompletableFuture.completedFuture(errorResponse));
+
+                // Act
+                CompletableFuture<ResponseEntity<String>> result = s3Controller.uploadFile(file, key);
+
+                // Assert
+                assertNotNull(result);
+                ResponseEntity<String> response = result.join();
+                assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+                String responseBody = response.getBody();
+                assertNotNull(responseBody);
+                assertTrue(responseBody.contains("Failed to upload file"));
+        }
+
 }

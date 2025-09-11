@@ -8,3 +8,51 @@ Scenario: Verify S3 controller health endpoint is accessible
   When method GET
   Then status 200
   And match response.status == 'UP'
+
+Scenario: List files from S3 Bucket
+  Given path 's3/list'
+  When method GET
+  Then status 200
+  And match response.success == true
+  And match response.count == '#number'
+  And match response.files == '#[]'
+  And match each response.files == '#string'
+
+Scenario: Delete file from S3 Bucket
+  Given path 's3/delete/test-file.txt'
+  When method DELETE
+  Then status 200
+  And match response contains 'File deleted successfully'
+
+Scenario: Delete file from S3 Bucket - File not found
+  Given path 's3/delete/nonexistent-file.txt'
+  When method DELETE
+  Then status 200
+  And match response contains 'File deleted successfully'
+
+Scenario: Upload and Delete file lifecycle test
+  # Upload a test file
+  Given path 's3/upload'
+  And multipart file file = { read: 'classpath:test-data/sample.txt', filename: 'test-upload.txt', contentType: 'text/plain' }
+  And multipart field key = 'test-uploads/test-upload.txt'
+  When method POST
+  Then status 200
+  And match response contains 'File uploaded successfully'
+  
+  # Verify file exists
+  Given path 's3/exists/test-uploads/test-upload.txt'
+  When method GET
+  Then status 200
+  And match response == true
+  
+  # Clean up - delete the test file
+  Given path 's3/delete/test-uploads/test-upload.txt'
+  When method DELETE
+  Then status 200
+  And match response contains 'File deleted successfully'
+  
+  # Verify file no longer exists
+  Given path 's3/exists/test-uploads/test-upload.txt'
+  When method GET
+  Then status 200
+  And match response == false

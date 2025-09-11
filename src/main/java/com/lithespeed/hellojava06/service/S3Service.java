@@ -142,6 +142,93 @@ public class S3Service {
     }
 
     /**
+     * Delete a file from S3 bucket by key
+     */
+    public CompletableFuture<String> deleteFileAsync(String key) {
+        DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        return s3AsyncClient.deleteObject(deleteRequest)
+                .thenApply(response -> key);
+    }
+
+    /**
+     * Business logic method to handle complete file deletion process
+     */
+    public CompletableFuture<Map<String, Object>> processFileDelete(String key) {
+        logger.info("Starting async deletion for file: {}", key);
+
+        return deleteFileAsync(key)
+            .thenApply(deletedKey -> {
+                logger.info("File deleted successfully using async S3Service: {}", deletedKey);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("message", "File deleted successfully: " + deletedKey);
+                response.put("key", deletedKey);
+
+                return response;
+            })
+            .exceptionally(e -> {
+                logger.error("Failed to delete file: {}", key, e);
+                Exception exception = (e instanceof Exception) ? (Exception) e : new RuntimeException(e);
+                return createErrorResponse(
+                        "delete file from S3",
+                        exception,
+                        "key: " + key);
+            });
+    }
+
+    /**
+     * Check if a file exists in S3 bucket
+     */
+    public CompletableFuture<Boolean> fileExistsAsync(String key) {
+        HeadObjectRequest headRequest = HeadObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        return s3AsyncClient.headObject(headRequest)
+                .thenApply(response -> true)
+                .exceptionally(throwable -> {
+                    if (throwable.getCause() instanceof NoSuchKeyException) {
+                        return false;
+                    }
+                    // For other exceptions, rethrow
+                    throw new RuntimeException(throwable);
+                });
+    }
+
+    /**
+     * Business logic method to handle file existence check
+     */
+    public CompletableFuture<Map<String, Object>> processFileExists(String key) {
+        logger.info("Checking file existence for: {}", key);
+
+        return fileExistsAsync(key)
+            .thenApply(exists -> {
+                logger.info("File existence check completed for: {} - exists: {}", key, exists);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("exists", exists);
+                response.put("key", key);
+
+                return response;
+            })
+            .exceptionally(e -> {
+                logger.error("Failed to check file existence: {}", key, e);
+                Exception exception = (e instanceof Exception) ? (Exception) e : new RuntimeException(e);
+                return createErrorResponse(
+                        "check file existence in S3",
+                        exception,
+                        "key: " + key);
+            });
+    }
+
+    /**
      * Creates a detailed error response with stack trace and context information
      */
     public Map<String, Object> createErrorResponse(String operation, Exception e, String context) {

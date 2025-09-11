@@ -466,4 +466,231 @@ class S3ServiceTest {
         assertNotNull(response.get("timestamp"));
         assertNotNull(response.get("stackTrace"));
     }
+
+    // Delete File Tests
+    @Test
+    void deleteFileAsync_Success() {
+        // Arrange
+        String key = "test-file.txt";
+        DeleteObjectResponse deleteResponse = DeleteObjectResponse.builder().build();
+        
+        when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(deleteResponse));
+
+        // Act
+        CompletableFuture<String> result = s3Service.deleteFileAsync(key);
+
+        // Assert
+        assertNotNull(result);
+        String deletedKey = result.join();
+        assertEquals(key, deletedKey);
+        
+        verify(s3AsyncClient).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void deleteFileAsync_S3Exception() {
+        // Arrange
+        String key = "test-file.txt";
+        CompletableFuture<DeleteObjectResponse> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(S3Exception.builder()
+                .message("Access denied")
+                .statusCode(403)
+                .build());
+        
+        when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class)))
+                .thenReturn(failedFuture);
+
+        // Act & Assert
+        CompletableFuture<String> result = s3Service.deleteFileAsync(key);
+        
+        assertThrows(RuntimeException.class, result::join);
+        verify(s3AsyncClient).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void processFileDelete_Success() {
+        // Arrange
+        String key = "test-file.txt";
+        DeleteObjectResponse deleteResponse = DeleteObjectResponse.builder().build();
+        
+        when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(deleteResponse));
+
+        // Act
+        CompletableFuture<Map<String, Object>> result = s3Service.processFileDelete(key);
+
+        // Assert
+        assertNotNull(result);
+        Map<String, Object> response = result.join();
+        
+        assertEquals(true, response.get("success"));
+        assertEquals("File deleted successfully: " + key, response.get("message"));
+        assertEquals(key, response.get("key"));
+        
+        verify(s3AsyncClient).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void processFileDelete_Failure() {
+        // Arrange
+        String key = "test-file.txt";
+        CompletableFuture<DeleteObjectResponse> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new RuntimeException("Delete failed"));
+        
+        when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class)))
+                .thenReturn(failedFuture);
+
+        // Act
+        CompletableFuture<Map<String, Object>> result = s3Service.processFileDelete(key);
+
+        // Assert
+        assertNotNull(result);
+        Map<String, Object> response = result.join();
+        
+        assertEquals(false, response.get("success"));
+        assertEquals("delete file from S3", response.get("operation"));
+        assertNotNull(response.get("message"));
+        assertEquals("key: " + key, response.get("context"));
+        
+        verify(s3AsyncClient).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    // File Exists Tests
+    @Test
+    void fileExistsAsync_FileExists() {
+        // Arrange
+        String key = "existing-file.txt";
+        HeadObjectResponse headResponse = HeadObjectResponse.builder().build();
+        
+        when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(headResponse));
+
+        // Act
+        CompletableFuture<Boolean> result = s3Service.fileExistsAsync(key);
+
+        // Assert
+        assertNotNull(result);
+        Boolean exists = result.join();
+        assertTrue(exists);
+        
+        verify(s3AsyncClient).headObject(any(HeadObjectRequest.class));
+    }
+
+    @Test
+    void fileExistsAsync_FileDoesNotExist() {
+        // Arrange
+        String key = "nonexistent-file.txt";
+        CompletableFuture<HeadObjectResponse> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(NoSuchKeyException.builder()
+                .message("Key does not exist")
+                .build());
+        
+        when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(failedFuture);
+
+        // Act
+        CompletableFuture<Boolean> result = s3Service.fileExistsAsync(key);
+
+        // Assert
+        assertNotNull(result);
+        Boolean exists = result.join();
+        assertFalse(exists);
+        
+        verify(s3AsyncClient).headObject(any(HeadObjectRequest.class));
+    }
+
+    @Test
+    void fileExistsAsync_OtherS3Exception() {
+        // Arrange
+        String key = "test-file.txt";
+        CompletableFuture<HeadObjectResponse> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(S3Exception.builder()
+                .message("Access denied")
+                .statusCode(403)
+                .build());
+        
+        when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(failedFuture);
+
+        // Act & Assert
+        CompletableFuture<Boolean> result = s3Service.fileExistsAsync(key);
+        
+        assertThrows(RuntimeException.class, result::join);
+        verify(s3AsyncClient).headObject(any(HeadObjectRequest.class));
+    }
+
+    @Test
+    void processFileExists_Success_FileExists() {
+        // Arrange
+        String key = "existing-file.txt";
+        HeadObjectResponse headResponse = HeadObjectResponse.builder().build();
+        
+        when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(headResponse));
+
+        // Act
+        CompletableFuture<Map<String, Object>> result = s3Service.processFileExists(key);
+
+        // Assert
+        assertNotNull(result);
+        Map<String, Object> response = result.join();
+        
+        assertEquals(true, response.get("success"));
+        assertEquals(true, response.get("exists"));
+        assertEquals(key, response.get("key"));
+        
+        verify(s3AsyncClient).headObject(any(HeadObjectRequest.class));
+    }
+
+    @Test
+    void processFileExists_Success_FileDoesNotExist() {
+        // Arrange
+        String key = "nonexistent-file.txt";
+        CompletableFuture<HeadObjectResponse> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(NoSuchKeyException.builder()
+                .message("Key does not exist")
+                .build());
+        
+        when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(failedFuture);
+
+        // Act
+        CompletableFuture<Map<String, Object>> result = s3Service.processFileExists(key);
+
+        // Assert
+        assertNotNull(result);
+        Map<String, Object> response = result.join();
+        
+        assertEquals(true, response.get("success"));
+        assertEquals(false, response.get("exists"));
+        assertEquals(key, response.get("key"));
+        
+        verify(s3AsyncClient).headObject(any(HeadObjectRequest.class));
+    }
+
+    @Test
+    void processFileExists_Failure() {
+        // Arrange
+        String key = "test-file.txt";
+        CompletableFuture<HeadObjectResponse> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new RuntimeException("Access denied"));
+        
+        when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(failedFuture);
+
+        // Act
+        CompletableFuture<Map<String, Object>> result = s3Service.processFileExists(key);
+
+        // Assert
+        assertNotNull(result);
+        Map<String, Object> response = result.join();
+        
+        assertEquals(false, response.get("success"));
+        assertEquals("check file existence in S3", response.get("operation"));
+        assertNotNull(response.get("message"));
+        assertEquals("key: " + key, response.get("context"));
+        
+        verify(s3AsyncClient).headObject(any(HeadObjectRequest.class));
+    }
 }
