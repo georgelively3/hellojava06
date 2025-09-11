@@ -693,4 +693,143 @@ class S3ServiceTest {
         
         verify(s3AsyncClient).headObject(any(HeadObjectRequest.class));
     }
+
+    // Edge case tests for better coverage
+    @Test
+    void deleteFileAsync_NullKey() {
+        // Arrange
+        String key = null;
+        DeleteObjectResponse deleteResponse = DeleteObjectResponse.builder().build();
+        
+        when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(deleteResponse));
+
+        // Act
+        CompletableFuture<String> result = s3Service.deleteFileAsync(key);
+
+        // Assert
+        assertNotNull(result);
+        String deletedKey = result.join();
+        assertNull(deletedKey);
+        
+        verify(s3AsyncClient).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void deleteFileAsync_EmptyKey() {
+        // Arrange
+        String key = "";
+        DeleteObjectResponse deleteResponse = DeleteObjectResponse.builder().build();
+        
+        when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(deleteResponse));
+
+        // Act
+        CompletableFuture<String> result = s3Service.deleteFileAsync(key);
+
+        // Assert
+        assertNotNull(result);
+        String deletedKey = result.join();
+        assertEquals("", deletedKey);
+        
+        verify(s3AsyncClient).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void fileExistsAsync_NullKey() {
+        // Arrange
+        String key = null;
+        HeadObjectResponse headResponse = HeadObjectResponse.builder().build();
+        
+        when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(headResponse));
+
+        // Act
+        CompletableFuture<Boolean> result = s3Service.fileExistsAsync(key);
+
+        // Assert
+        assertNotNull(result);
+        Boolean exists = result.join();
+        assertTrue(exists);
+        
+        verify(s3AsyncClient).headObject(any(HeadObjectRequest.class));
+    }
+
+    @Test
+    void fileExistsAsync_EmptyKey() {
+        // Arrange
+        String key = "";
+        HeadObjectResponse headResponse = HeadObjectResponse.builder().build();
+        
+        when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(headResponse));
+
+        // Act
+        CompletableFuture<Boolean> result = s3Service.fileExistsAsync(key);
+
+        // Assert
+        assertNotNull(result);
+        Boolean exists = result.join();
+        assertTrue(exists);
+        
+        verify(s3AsyncClient).headObject(any(HeadObjectRequest.class));
+    }
+
+    @Test
+    void createErrorResponse_WithCause() {
+        // Arrange
+        RuntimeException cause = new RuntimeException("Root cause message");
+        Exception testException = new RuntimeException("Test error message", cause);
+        
+        // Act
+        Map<String, Object> response = s3Service.createErrorResponse("test operation", testException, "test context");
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(false, response.get("success"));
+        assertEquals("test operation", response.get("operation"));
+        assertEquals("RuntimeException", response.get("exceptionType"));
+        assertEquals("Test error message", response.get("message"));
+        assertEquals("test context", response.get("context"));
+        assertEquals("RuntimeException", response.get("causeType"));
+        assertEquals("Root cause message", response.get("causeMessage"));
+        assertNotNull(response.get("timestamp"));
+        assertNotNull(response.get("stackTrace"));
+    }
+
+    @Test
+    void deleteFileAsync_VerifyBucketNameUsed() {
+        // Arrange
+        String key = "test-file.txt";
+        DeleteObjectResponse deleteResponse = DeleteObjectResponse.builder().build();
+        
+        when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(deleteResponse));
+
+        // Act
+        s3Service.deleteFileAsync(key).join();
+
+        // Assert - Verify the correct bucket name was used
+        verify(s3AsyncClient).deleteObject(argThat((DeleteObjectRequest request) -> 
+            bucketName.equals(request.bucket()) && key.equals(request.key())
+        ));
+    }
+
+    @Test
+    void fileExistsAsync_VerifyBucketNameUsed() {
+        // Arrange
+        String key = "test-file.txt";
+        HeadObjectResponse headResponse = HeadObjectResponse.builder().build();
+        
+        when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(headResponse));
+
+        // Act
+        s3Service.fileExistsAsync(key).join();
+
+        // Assert - Verify the correct bucket name was used
+        verify(s3AsyncClient).headObject(argThat((HeadObjectRequest request) -> 
+            bucketName.equals(request.bucket()) && key.equals(request.key())
+        ));
+    }
 }
