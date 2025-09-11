@@ -32,27 +32,31 @@ Scenario: Delete file from S3 Bucket - File not found
 
 Scenario: Upload and Delete file lifecycle test
   # Upload a test file
-  Given path 's3/upload'
+  Given path 's3/upload-file'
   And multipart file file = { read: 'classpath:test-data/sample.txt', filename: 'test-upload.txt', contentType: 'text/plain' }
-  And multipart field key = 'test-uploads/test-upload.txt'
   When method POST
   Then status 200
-  And match response contains 'File uploaded successfully'
+  And match response.success == true
+  And match response.message == 'File uploaded successfully'
+  And match response.etag != null
+  
+  # Extract the uploaded file key from the etag
+  * def uploadedKey = response.etag
   
   # Verify file exists
-  Given path 's3/exists/test-uploads/test-upload.txt'
+  Given path 's3/exists/' + uploadedKey
   When method GET
   Then status 200
   And match response == true
   
   # Clean up - delete the test file
-  Given path 's3/delete/test-uploads/test-upload.txt'
+  Given path 's3/delete/' + uploadedKey
   When method DELETE
   Then status 200
   And match response contains 'File deleted successfully'
   
   # Verify file no longer exists
-  Given path 's3/exists/test-uploads/test-upload.txt'
+  Given path 's3/exists/' + uploadedKey
   When method GET
   Then status 200
   And match response == false

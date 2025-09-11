@@ -87,29 +87,4 @@ public class S3Controller {
         return s3Service.fileExistsAsync(key)
                 .thenApply(exists -> ResponseEntity.ok(exists));
     }
-
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload a file with custom key")
-    public CompletableFuture<ResponseEntity<String>> uploadFile(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("key") String key) {
-
-        if (file.isEmpty()) {
-            return CompletableFuture.completedFuture(
-                    ResponseEntity.badRequest().body("Please select a file to upload"));
-        }
-
-        // For the Karate test, we'll use a simple upload that ignores the key parameter
-        // and uses the existing upload logic
-        return s3Service.processFileUpload(file)
-                .thenApply(response -> {
-                    Boolean success = (Boolean) response.get("success");
-                    if (Boolean.TRUE.equals(success)) {
-                        return ResponseEntity.ok("File uploaded successfully");
-                    } else {
-                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                .body("Failed to upload file: " + response.get("message"));
-                    }
-                });
-    }
 }
