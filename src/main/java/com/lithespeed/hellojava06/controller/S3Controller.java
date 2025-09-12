@@ -70,9 +70,9 @@ public class S3Controller {
         return result;
     }
 
-    @DeleteMapping("/delete/{key}")
+    @DeleteMapping("/delete")
     @Operation(summary = "Delete a file from S3")
-    public CompletableFuture<ResponseEntity<String>> deleteFile(@PathVariable String key) {
+    public CompletableFuture<ResponseEntity<String>> deleteFile(@RequestParam String key) {
         return s3Service.deleteFileAsync(key)
                 .thenApply(deletedKey -> ResponseEntity.ok("File deleted successfully: " + deletedKey))
                 .exceptionally(e -> {
@@ -81,9 +81,9 @@ public class S3Controller {
                 });
     }
 
-    @GetMapping("/exists/{key}")
+    @GetMapping("/exists")
     @Operation(summary = "Check if file exists in S3")
-    public CompletableFuture<ResponseEntity<Boolean>> fileExists(@PathVariable String key) {
+    public CompletableFuture<ResponseEntity<Boolean>> fileExists(@RequestParam String key) {
         return s3Service.fileExistsAsync(key)
                 .thenApply(exists -> ResponseEntity.ok(exists));
     }
