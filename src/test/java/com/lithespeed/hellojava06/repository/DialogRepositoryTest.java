@@ -35,7 +35,7 @@ class DialogRepositoryTest {
         // Then
         assertNotNull(dialogs, "Dialog list should not be null");
         assertEquals(7, dialogs.size(), "Should return all 7 dialogs");
-        
+
         // Verify first dialog matches expected data
         Dialog firstDialog = dialogs.get(0);
         assertEquals(1, firstDialog.getId(), "First dialog should have ID 1");
@@ -130,13 +130,15 @@ class DialogRepositoryTest {
         Optional<Dialog> result = dialogRepository.findByIdAndRequest(1, "");
 
         // Then
-        assertTrue(result.isPresent(), "Should find dialog by ID when request is empty (empty string contains in any string)");
+        assertTrue(result.isPresent(),
+                "Should find dialog by ID when request is empty (empty string contains in any string)");
         assertEquals(1, result.get().getId(), "Found dialog should have ID 1");
     }
 
     @Test
     void testFindByIdAndRequestSearchByTextOnly() {
-        // Note: The current implementation requires ID match, so we test with existing IDs
+        // Note: The current implementation requires ID match, so we test with existing
+        // IDs
         // When - Search for "How" which should match dialog ID 2 or 5
         Optional<Dialog> result1 = dialogRepository.findByIdAndRequest(2, "How");
         Optional<Dialog> result2 = dialogRepository.findByIdAndRequest(5, "How");
@@ -144,7 +146,7 @@ class DialogRepositoryTest {
         // Then
         assertTrue(result1.isPresent(), "Should find dialog ID 2 with 'How' in request");
         assertEquals(2, result1.get().getId(), "First result should have ID 2");
-        
+
         assertTrue(result2.isPresent(), "Should find dialog ID 5 with 'How' in request");
         assertEquals(5, result2.get().getId(), "Second result should have ID 5");
     }
@@ -156,13 +158,13 @@ class DialogRepositoryTest {
 
         // Then
         assertEquals(7, dialogs.size(), "Should have exactly 7 dialogs");
-        
+
         // Verify specific dialogs exist
-        assertTrue(dialogs.stream().anyMatch(d -> d.getId() == 1 && "Hello".equals(d.getRequest())), 
-                   "Should contain Hello dialog");
-        assertTrue(dialogs.stream().anyMatch(d -> d.getId() == 2 && "How are you?".equals(d.getRequest())), 
-                   "Should contain How are you dialog");
-        assertTrue(dialogs.stream().anyMatch(d -> d.getId() == 7 && "Thank you".equals(d.getRequest())), 
-                   "Should contain Thank you dialog");
+        assertTrue(dialogs.stream().anyMatch(d -> d.getId() == 1 && "Hello".equals(d.getRequest())),
+                "Should contain Hello dialog");
+        assertTrue(dialogs.stream().anyMatch(d -> d.getId() == 2 && "How are you?".equals(d.getRequest())),
+                "Should contain How are you dialog");
+        assertTrue(dialogs.stream().anyMatch(d -> d.getId() == 7 && "Thank you".equals(d.getRequest())),
+                "Should contain Thank you dialog");
     }
 }

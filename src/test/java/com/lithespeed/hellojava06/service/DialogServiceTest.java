@@ -35,8 +35,7 @@ class DialogServiceTest {
         testDialogs = Arrays.asList(
                 new Dialog(1, "Hello", "Hello there!"),
                 new Dialog(2, "How are you?", "I'm doing well!"),
-                new Dialog(3, "Goodbye", "See you later!")
-        );
+                new Dialog(3, "Goodbye", "See you later!"));
     }
 
     @Test
@@ -51,7 +50,7 @@ class DialogServiceTest {
         assertNotNull(result, "Result should not be null");
         assertEquals(3, result.size(), "Should return all 3 dialogs");
         assertEquals(testDialogs, result, "Should return the same dialogs from repository");
-        
+
         verify(dialogRepository, times(1)).findAll();
     }
 
@@ -67,7 +66,7 @@ class DialogServiceTest {
         assertNotNull(result, "Result should not be null");
         assertEquals(1, result.getId(), "Response should have correct ID");
         assertEquals("Hello there!", result.getResponse(), "Response should have correct response text");
-        
+
         verify(dialogRepository, times(1)).findByIdAndRequest(1, "Hello");
     }
 
@@ -80,7 +79,7 @@ class DialogServiceTest {
         Exception exception = assertThrows(Exception.class, () -> {
             dialogService.getDialogByIdAndRequest(999, "NonExistent");
         });
-        
+
         assertEquals("Dialog not found", exception.getMessage(), "Should throw exception with correct message");
         verify(dialogRepository, times(1)).findByIdAndRequest(999, "NonExistent");
     }
@@ -97,7 +96,7 @@ class DialogServiceTest {
         assertNotNull(result, "Result should not be null");
         assertEquals(1, result.getId(), "Response should have correct ID");
         assertEquals("Hello there!", result.getResponse(), "Response should have correct response text");
-        
+
         verify(dialogRepository, times(1)).findByIdAndRequest(1, null);
     }
 
@@ -113,7 +112,7 @@ class DialogServiceTest {
         assertNotNull(result, "Result should not be null");
         assertEquals(1, result.getId(), "Response should have correct ID");
         assertEquals("Hello there!", result.getResponse(), "Response should have correct response text");
-        
+
         verify(dialogRepository, times(1)).findByIdAndRequest(0, "Hello");
     }
 
@@ -128,7 +127,7 @@ class DialogServiceTest {
         // Then
         assertNotNull(result, "Result should not be null");
         assertTrue(result.isEmpty(), "Result should be empty");
-        
+
         verify(dialogRepository, times(1)).findAll();
     }
 
@@ -158,7 +157,7 @@ class DialogServiceTest {
         assertNotNull(result, "Result should not be null");
         assertEquals(5, result.getId(), "Should preserve dialog ID");
         assertEquals("Complex answer with details", result.getResponse(), "Should preserve dialog response");
-        
+
         verify(dialogRepository, times(1)).findByIdAndRequest(5, "Complex");
     }
 
@@ -167,7 +166,7 @@ class DialogServiceTest {
         // Given
         Dialog dialog1 = new Dialog(1, "Test1", "Response1");
         Dialog dialog2 = new Dialog(2, "Test2", "Response2");
-        
+
         when(dialogRepository.findByIdAndRequest(1, "Test1")).thenReturn(Optional.of(dialog1));
         when(dialogRepository.findByIdAndRequest(2, "Test2")).thenReturn(Optional.of(dialog2));
 
@@ -178,10 +177,10 @@ class DialogServiceTest {
         // Then
         assertEquals(1, result1.getId(), "First result should have ID 1");
         assertEquals("Response1", result1.getResponse(), "First result should have correct response");
-        
+
         assertEquals(2, result2.getId(), "Second result should have ID 2");
         assertEquals("Response2", result2.getResponse(), "Second result should have correct response");
-        
+
         verify(dialogRepository, times(1)).findByIdAndRequest(1, "Test1");
         verify(dialogRepository, times(1)).findByIdAndRequest(2, "Test2");
     }

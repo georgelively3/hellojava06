@@ -1,6 +1,6 @@
 package com.lithespeed.hellojava06.controller;
 
-import com.lithespeed.hellojava06.dto.DialogRequestDTO;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.lithespeed.hellojava06.entity.Dialog;
 import com.lithespeed.hellojava06.dto.DialogResponseDTO;
 import com.lithespeed.hellojava06.service.DialogService;
@@ -41,7 +41,8 @@ public class DialogController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<DialogResponseDTO> getDialog(
-            @Parameter(description = "Dialog search criteria", required = true) @RequestBody @Valid DialogRequestDTO dialogRequest)
+            @Parameter(description = "Dialog search criteria", required = true) 
+            @RequestBody @Valid @JsonView(Dialog.RequestView.class) Dialog dialogRequest)
             throws Exception {
 
         logger.info("Received getDialog request: {}", dialogRequest);
@@ -64,6 +65,7 @@ public class DialogController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved all dialogs"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
+    @JsonView(Dialog.ResponseView.class)
     public ResponseEntity<List<Dialog>> getAllDialogs() {
         logger.info("Received getAllDialogs request");
 

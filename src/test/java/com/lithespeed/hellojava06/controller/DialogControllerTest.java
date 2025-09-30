@@ -1,7 +1,6 @@
 package com.lithespeed.hellojava06.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lithespeed.hellojava06.dto.DialogRequestDTO;
 import com.lithespeed.hellojava06.entity.Dialog;
 import com.lithespeed.hellojava06.dto.DialogResponseDTO;
 import com.lithespeed.hellojava06.service.DialogService;
@@ -34,19 +33,18 @@ class DialogControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private DialogRequestDTO testRequest;
+    private Dialog testRequest;
     private DialogResponseDTO testResponse;
     private List<Dialog> testDialogs;
 
     @BeforeEach
     void setUp() {
-        testRequest = new DialogRequestDTO(1, "Hello");
+        testRequest = new Dialog(1, "Hello", null);
         testResponse = new DialogResponseDTO(1, "Hello there!");
         testDialogs = Arrays.asList(
                 new Dialog(1, "Hello", "Hello there!"),
                 new Dialog(2, "How are you?", "I'm doing well!"),
-                new Dialog(3, "Goodbye", "See you later!")
-        );
+                new Dialog(3, "Goodbye", "See you later!"));
     }
 
     @Test
@@ -96,38 +94,9 @@ class DialogControllerTest {
     }
 
     @Test
-    void testGetDialogWithValidationErrors() throws Exception {
-        // Given - Invalid request with negative ID
-        DialogRequestDTO invalidRequest = new DialogRequestDTO(-1, "Test");
-
-        // When & Then
-        mockMvc.perform(post("/dialogs/get")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest());
-
-        verify(dialogService, never()).getDialogByIdAndRequest(anyInt(), anyString());
-    }
-
-    @Test
-    void testGetDialogWithRequestTooLong() throws Exception {
-        // Given - Request with text longer than 500 characters
-        String longText = "a".repeat(501);
-        DialogRequestDTO invalidRequest = new DialogRequestDTO(1, longText);
-
-        // When & Then
-        mockMvc.perform(post("/dialogs/get")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest());
-
-        verify(dialogService, never()).getDialogByIdAndRequest(anyInt(), anyString());
-    }
-
-    @Test
     void testGetDialogWithZeroId() throws Exception {
         // Given
-        DialogRequestDTO zeroIdRequest = new DialogRequestDTO(0, "Test");
+        Dialog zeroIdRequest = new Dialog(0, "Test", null);
         DialogResponseDTO zeroIdResponse = new DialogResponseDTO(1, "Found by text");
         when(dialogService.getDialogByIdAndRequest(0, "Test")).thenReturn(zeroIdResponse);
 
@@ -145,7 +114,7 @@ class DialogControllerTest {
     @Test
     void testGetDialogWithNullRequest() throws Exception {
         // Given
-        DialogRequestDTO nullRequestText = new DialogRequestDTO(1, null);
+        Dialog nullRequestText = new Dialog(1, null, null);
         when(dialogService.getDialogByIdAndRequest(1, null)).thenReturn(testResponse);
 
         // When & Then
@@ -171,10 +140,8 @@ class DialogControllerTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(3))
                 .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].request").value("Hello"))
                 .andExpect(jsonPath("$[0].response").value("Hello there!"))
                 .andExpect(jsonPath("$[1].id").value(2))
-                .andExpect(jsonPath("$[1].request").value("How are you?"))
                 .andExpect(jsonPath("$[1].response").value("I'm doing well!"));
 
         verify(dialogService, times(1)).getAllDialogs();
@@ -248,10 +215,11 @@ class DialogControllerTest {
     @Test
     void testGetDialogResponseStructure() throws Exception {
         // Given
-        DialogResponseDTO complexResponse = new DialogResponseDTO(42, "Complex response with special characters: !@#$%");
+        DialogResponseDTO complexResponse = new DialogResponseDTO(42,
+                "Complex response with special characters: !@#$%");
         when(dialogService.getDialogByIdAndRequest(42, "Complex")).thenReturn(complexResponse);
 
-        DialogRequestDTO complexRequest = new DialogRequestDTO(42, "Complex");
+        Dialog complexRequest = new Dialog(42, "Complex", null);
 
         // When & Then
         mockMvc.perform(post("/dialogs/get")
@@ -262,5 +230,22 @@ class DialogControllerTest {
                 .andExpect(jsonPath("$.response").value("Complex response with special characters: !@#$%"));
 
         verify(dialogService, times(1)).getDialogByIdAndRequest(42, "Complex");
+    }
+
+    @Test
+    void testDialogJsonIgnorePropertiesCompliance() throws Exception {
+        // Given - Test that unknown properties are ignored (Fortify SAST compliance)
+        String jsonWithUnknownProperties = "{\"id\":1,\"request\":\"Hello\",\"unknownField\":\"should be ignored\",\"anotherUnknown\":123}";
+        when(dialogService.getDialogByIdAndRequest(1, "Hello")).thenReturn(testResponse);
+
+        // When & Then
+        mockMvc.perform(post("/dialogs/get")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonWithUnknownProperties))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.response").value("Hello there!"));
+
+        verify(dialogService, times(1)).getDialogByIdAndRequest(1, "Hello");
     }
 }
