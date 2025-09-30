@@ -2,7 +2,7 @@ package com.lithespeed.hellojava06.controller;
 
 import com.lithespeed.hellojava06.dto.DialogRequestDTO;
 import com.lithespeed.hellojava06.entity.Dialog;
-import com.lithespeed.hellojava06.entity.DialogResponseDTO;
+import com.lithespeed.hellojava06.dto.DialogResponseDTO;
 import com.lithespeed.hellojava06.service.DialogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

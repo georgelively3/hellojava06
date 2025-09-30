@@ -1,4 +1,4 @@
-package com.lithespeed.hellojava06.entity;
+package com.lithespeed.hellojava06.dto;
 
 /**
  * Data Transfer Object for Dialog responses

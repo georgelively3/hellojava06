@@ -1,7 +1,7 @@
 package com.lithespeed.hellojava06.service;
 
 import com.lithespeed.hellojava06.entity.Dialog;
-import com.lithespeed.hellojava06.entity.DialogResponseDTO;
+import com.lithespeed.hellojava06.dto.DialogResponseDTO;
 import com.lithespeed.hellojava06.repository.DialogRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
